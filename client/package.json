@@ -1,0 +1,53 @@
+{
+  "name": "@wonderlandengine/networked-components",
+  "version": "1.0.0",
+  "description": "Wonderland Engine components for networking.",
+  "main": "dist/index.js",
+  "wonderlandengine": {},
+  "author": "Wonderland GmbH",
+  "license": "Wonderland Engine EULA",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "format": "prettier -w ./src",
+    "build:docs": "npx typedoc --out docs src/index.ts",
+    "prepack": "yarn build"
+  },
+  "files": [
+    "./dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "peerDependencies": {
+    "@wonderlandengine/api": "^1.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@types/sdp-transform": "^2.4.6",
+    "@wonderlandengine/api": "^1.1.3",
+    "sdp-transform": "^2.14.1"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.2.1",
+    "@typescript-eslint/parser": "^6.2.1",
+    "eslint": "8.28.0",
+    "eslint-config-prettier": "^8.6.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-prettier": "4.2.1",
+    "prettier": "2.8.4",
+    "ts-jest": "^29.1.0",
+    "ts-loader": "^9.4.4",
+    "ts-node": "^10.9.1",
+    "tsc-watch": "5.0.3",
+    "typedoc": "^0.24.8",
+    "typescript": "4.9.5",
+    "webpack-cli": "^5.1.4"
+  },
+  "directories": {
+    "dist": "dist"
+  },
+  "type": "module"
+}
