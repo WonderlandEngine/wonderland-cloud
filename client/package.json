@@ -1,11 +1,11 @@
 {
-  "name": "@wonderlandengine/networked-components",
-  "version": "1.0.0",
-  "description": "Wonderland Engine components for networking.",
+  "name": "@wonderlandcloud/client",
+  "version": "0.1.0",
+  "description": "Wonderland Engine multi-user server client and components.",
   "main": "dist/index.js",
   "wonderlandengine": {},
   "author": "Wonderland GmbH",
-  "license": "Wonderland Engine EULA",
+  "license": "MIT",
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "format": "prettier -w ./src",
