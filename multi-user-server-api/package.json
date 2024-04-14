@@ -1,16 +1,14 @@
 {
-  "name": "@wonderlandengine/multi-user-server-api",
-  "version": "1.0.0",
-  "description": "Shared server types for wonderland multi user servers",
+  "name": "@wonderlandcloud/multi-user-server-api",
+  "version": "0.1.0",
+  "description": "API for custom mutli-user servers.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js"
   },
   "files": [
-    "./dist",
-    "README.md",
-    "examples"
+    "./dist"
   ],
   "publishConfig": {
     "access": "public"
