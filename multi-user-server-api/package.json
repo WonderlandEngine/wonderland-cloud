@@ -10,12 +10,8 @@
   "files": [
     "./dist"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "author": "Wonderland GmbH",
-  "license": "Wonderland Engine EULA",
-  "private": true,
+  "license": "MIT",
   "scripts": {
     "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
