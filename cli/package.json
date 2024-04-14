@@ -1,6 +1,6 @@
 {
-  "name": "@wonderlandengine/cloud-cli",
-  "version": "1.0.0",
+  "name": "@wonderlandcloud/cli",
+  "version": "0.1.0",
   "description": "CLI client and node library for interaction with Wonderland Cloud services.",
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
@@ -15,8 +15,7 @@
     "README.md"
   ],
   "author": "Wonderland GmbH",
-  "license": "Wonderland Engine EULA",
-  "private": true,
+  "license": "MIT",
   "scripts": {
     "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
