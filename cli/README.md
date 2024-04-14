@@ -1,4 +1,4 @@
-# Wonderland Cloud CLI
+# Wonderland Cloud - Command Line Interface (CLI)
 
 This package provides a CLI client and a node library for interacting with
 Wonderland Cloud services.
@@ -106,13 +106,13 @@ echo $WLE_API_TOKEN_BASE64 | base64 -d > ./wle-apitoken.json
 Production:
 
 ```shell
-export PAGE_CONFIG_LOCATION=./projectConfigs/prod.json && export ACCESS=public && npm exec wl-cloud page create my-fancy-project ./deploy  
+export PAGE_CONFIG_LOCATION=./projectConfigs/prod.json && export ACCESS=public && npm exec wl-cloud page create my-fancy-project ./deploy
 ```
 
 Development
 
 ```shell
-export PAGE_CONFIG_LOCATION=./projectConfigs/dev.json && export ACCESS=unlisted && npm exec wl-cloud page create my-fancy-project ./deploy  
+export PAGE_CONFIG_LOCATION=./projectConfigs/dev.json && export ACCESS=unlisted && npm exec wl-cloud page create my-fancy-project ./deploy
 ```
 
 #### Scripts for publishing dev and prod in package.json
@@ -165,13 +165,13 @@ Authentication is done either via `--authToken` argument option or via a `wle-ap
 #### Command line
 
 ```shell
-npm exec wl-cloud page create my-fancy-proejct ./deploy 
+npm exec wl-cloud page create my-fancy-proejct ./deploy
 ```
 
 #### Command line with env args for auth token
 
 ```shell
-export AUTH_TOKEN=YOUWLAPITOKEN && npm exec wl-cloud page create my-fancy-proejct ./deploy 
+export AUTH_TOKEN=YOUWLAPITOKEN && npm exec wl-cloud page create my-fancy-proejct ./deploy
 ```
 
 #### package.json script
@@ -226,3 +226,12 @@ export ACCESS=unlisted npm exec wl-cloud page update
 ```shell
 export ACCESS=public && export PAGE_CONFIG_LOCATION=./config/example-config.json &&  npm exec wl-cloud page update
 ```
+
+## What is Wonderland Cloud?
+
+[Wonderland Cloud](https://cloud.wonderland.dev) is a set of cloud services
+specialized for 3D and XR web experiences, provided by [Wonderland](https://wonderlandengine.com).
+
+The available services provided include multi-user servers optimized
+for 3D and VR web apps, as well as free 3D web app hosting.
+
