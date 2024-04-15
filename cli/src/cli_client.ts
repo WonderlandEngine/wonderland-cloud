@@ -135,8 +135,8 @@ const validateAndGetCreateArgs = (
     throw new Error('failed to process command');
   }
   return {
-    projectName: args[1],
-    projectLocation: args[2],
+    projectName: args[0],
+    projectLocation: args[1],
     isPublic: checkAndGetAccessType(config),
     // if no threads is true, withThreads is false
     withThreads: !config.PAGE_NO_THREADS,
@@ -384,4 +384,5 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
 
 const command = checkAndGetCommandArgs();
 
-evalCommandArgs(command);
+// do this so we can actually test outcome in our cli tests
+export default evalCommandArgs(command);
