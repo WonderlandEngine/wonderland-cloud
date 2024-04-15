@@ -384,4 +384,5 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
 
 const command = checkAndGetCommandArgs();
 
-evalCommandArgs(command);
+// do this so we can actually test outcome in our cli tests
+export default evalCommandArgs(command);
