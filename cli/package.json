@@ -26,7 +26,7 @@
     "build:docs:watch": "npx typedoc --watch --out docs src/index.ts",
     "start:dev:client": "tsc-watch -p tsconfig.json --onSuccess \"node dist/cli_client.js\"",
     "start:client": "node dist/src/cli_client.js server debug -h",
-    "test": "export TEST_MODE=true && yarn jest test/**/* -i "
+    "test": "export TEST_MODE=true && yarn jest test/** --i --forceExit"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
