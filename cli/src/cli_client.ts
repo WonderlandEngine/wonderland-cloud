@@ -125,18 +125,18 @@ const validateAndGetCreateArgs = (
   isPublic: boolean;
   withThreads: boolean;
 } => {
-  if (args.length < 2) {
+  if (args.length < 1) {
     logMessage(
-      'number of arguments does not match, command expects at least 2 arguments,' +
-        ' the project name and the project location, ' +
+      'number of arguments does not match, command expects at least 1 arguments,' +
+        ' the project name and optional project location, ' +
         'the project location can be relative or absolute.\n' +
-        ' Example usage: "wle-cloud pages create my-project-name --access unlisted --no-threads'
+        ' Example usage: "wle-cloud pages create my-project-name --access unlisted --noThreads'
     );
     throw new Error('failed to process command');
   }
   return {
     projectName: args[0],
-    projectLocation: args[1],
+    projectLocation: args[1] ?? './deploy',
     isPublic: checkAndGetAccessType(config),
     // if no threads is true, withThreads is false
     withThreads: !config.PAGE_NO_THREADS,
