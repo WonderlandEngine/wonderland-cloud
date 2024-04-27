@@ -282,12 +282,7 @@ export class PageClient {
     create: boolean,
     withThreads = true
   ): Promise<UploadPageResponse> {
-    logMessage(
-      'uploading page files... ',
-      projectName,
-      ' isPublic ',
-      isPublic
-    );
+    logMessage('uploading page files... ', projectName, ' isPublic ', isPublic);
     const formData = new FormData();
     const file = fs.readFileSync(deploymentArchivePath);
 
@@ -320,7 +315,7 @@ export class PageClient {
 
   async #deleteDeploymentArchive(deploymentArchivePath: string) {
     logMessage('removing deployment archive...');
-    await fs.rmSync(deploymentArchivePath, { recursive: true });
+    fs.rmSync(deploymentArchivePath, { recursive: true });
     logMessage('removed deployment archive');
   }
 }
