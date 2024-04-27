@@ -70,9 +70,9 @@ it to update you already existing project.
 
 ### Available commands
 
-* `create your-page-name ./path/to/deploy --access unlisted|public [--no-threads]` Creates a new page with the
+* `create your-page-name ./path/to/deploy --access unlisted|public [--noThreads]` Creates a new page with the
   `your-page-name` name from `./path/to/deploy` with either public or unlisted access. Name and path are mandatory for
-  creating. if you add the `--no-threads` flag, the additional response headers for enabling the WLE threads feature are
+  creating. if you add the `--noThreads` flag, the additional response headers for enabling the WLE threads feature are
   omitted
 * `update [your-page-name] ./path/to/deploy` Updates an existing page
 * `list ` List all of your pages
@@ -165,7 +165,7 @@ Authentication is done either via `--authToken` argument option or via a `wle-ap
 #### Command line
 
 ```shell
-npm exec wl-cloud page create my-fancy-proejct ./deploy
+npm exec wl-cloud page create my-fancy-project ./deploy
 ```
 
 #### Command line with env args for auth token
