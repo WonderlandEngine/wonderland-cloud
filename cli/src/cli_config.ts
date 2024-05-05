@@ -11,7 +11,7 @@ const parseArgsConfig: ParseArgsConfig = {
   options: {
     authToken: {
       type: 'string',
-      default: process.env.AUTH_TOKEN,
+      default: process.env.WLE_CREDENTIALS,
     },
     workDir: {
       type: 'string',
@@ -70,13 +70,13 @@ config();
  *
  * example usage from your multiplayer server project:
  * ```sh
- * node ./node_modules/@wonderlandengine/multi-user-server-api/dist/cli_client --authToken="YOURWLEAPITOKEN " --serverUrl="https://k8s.cloud.wonderlandengine.dev/yourServerPath"
+ * npm exec wl-cloud --authToken="YOURWLEAPITOKEN " --serverUrl="https://k8s.cloud.wonderlandengine.dev/yourServerPath"
  * ```
  * You only need to set `--workDir` argument if your server is located not in the same project where your multiuser server api types package is installed.
  * You can also set a path to the location of your WLE-API token file via `--authJsonLocation` or `AUTH_JSON_LOCATION` env var. Default for the file location
  * is your custom server directory and the filename `wle-apitoken.json`. Make sure to add this file to `.gitignore`, so you do not expose
  * your WLE API credentials by accident.
- * All these arguments can be aso set via env vars: `AUTH_TOKEN`, `WORK_DIR` and `SERVER_URL`.
+ * All these arguments can be aso set via env vars: `WLE_CREDENTIALS`, `WORK_DIR` and `SERVER_URL`.
  *
  * Please note, that you `need` to set the `authToken` and the `serverUrl`, otherwise the cli client will fail to start.
  */
@@ -100,7 +100,7 @@ export const { values, positionals } = parseArgs(parseArgsConfig);
 const args = values as unknown as CliClientArgs;
 
 export interface CloudConfig {
-  AUTH_TOKEN: string;
+  WLE_CREDENTIALS: string;
   WORK_DIR: string;
   SERVER_URL: string;
   IS_LOCAL_SERVER: boolean;
@@ -108,12 +108,12 @@ export interface CloudConfig {
   PAGE_ACCESS: string;
   PAGE_NO_THREADS: boolean;
   COMMANDER_URL?: string;
-  AUTH_TOKEN_LOCATION: string;
+  WLE_CREDENTIALS_LOCATION: string;
   HELP: boolean;
 }
 
 const cliConfig: Partial<CloudConfig> = {
-  AUTH_TOKEN: args.authToken,
+  WLE_CREDENTIALS: args.authToken,
   WORK_DIR: args.workDir,
   SERVER_URL: args.serverUrl,
   IS_LOCAL_SERVER: args.isLocalServer,
@@ -121,7 +121,7 @@ const cliConfig: Partial<CloudConfig> = {
   PAGE_ACCESS: args.access,
   PAGE_NO_THREADS: args.noThreads,
   COMMANDER_URL: args.commanderUrl,
-  AUTH_TOKEN_LOCATION: path.join(args.authJsonLocation),
+  WLE_CREDENTIALS_LOCATION: path.join(args.authJsonLocation),
   HELP: args.help
 };
 
@@ -129,36 +129,36 @@ export const getAndValidateAuthToken = (
   cloudConfig: Partial<CloudConfig>
 ): string => {
   // if auth token location is not set, check under default location
-  if (!cloudConfig.AUTH_TOKEN_LOCATION) {
-    cloudConfig.AUTH_TOKEN_LOCATION = path.join(
+  if (!cloudConfig.WLE_CREDENTIALS_LOCATION) {
+    cloudConfig.WLE_CREDENTIALS_LOCATION = path.join(
       process.cwd(),
       'wle-apitoken.json'
     );
   }
-  // check if auth token exists under the AUTH_TOKEN_LOCATION
-  if (!fs.existsSync(cloudConfig.AUTH_TOKEN_LOCATION)) {
+  // check if auth token exists under the WLE_CREDENTIALS_LOCATION
+  if (!fs.existsSync(cloudConfig.WLE_CREDENTIALS_LOCATION)) {
     assert.ok(
-      cloudConfig.AUTH_TOKEN,
-      'Could not find WLE api token file and also missing AUTH_TOKEN, please either set via cmd arg --authToken="YOUR_AUTH_TOKEN" or via AUTH_TOKEN env var.\n' +
+      cloudConfig.WLE_CREDENTIALS,
+      'Could not find WLE api token file and also missing WLE_CREDENTIALS, please either set via cmd arg --authToken="YOUR_WLE_CREDENTIALS" or via WLE_CREDENTIALS env var.\n' +
         'Alternatively you can also provide a path to your WLE api token file via "--authJsonLocation" or `AUTH_JSON_LOCATION` env var. Default location for your API token is: \n' +
         `${path.join(process.cwd(), 'wle-apitoken.json')}`
     );
   } else {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const apiTokenJSON = require(cloudConfig.AUTH_TOKEN_LOCATION as string);
+    const apiTokenJSON = require(cloudConfig.WLE_CREDENTIALS_LOCATION as string);
     assert.ok(
       apiTokenJSON.token,
-      `Missing "token" property in WLE api token file, located in ${cloudConfig.AUTH_TOKEN_LOCATION},\n` +
+      `Missing "token" property in WLE api token file, located in ${cloudConfig.WLE_CREDENTIALS_LOCATION},\n` +
         `please double check ` +
-        `if the token file is valid or else provide an auth token via AUTH_TOKEN env var or --authToken="YOUR_AUTH_TOKEN" argument. \n` +
+        `if the token file is valid or else provide an auth token via WLE_CREDENTIALS env var or --authToken="YOUR_WLE_CREDENTIALS" argument. \n` +
         `Default location for token file is ${path.join(
           process.cwd(),
           'wle-apitoken.json'
         )}`
     );
-    cloudConfig.AUTH_TOKEN = apiTokenJSON.token;
+    cloudConfig.WLE_CREDENTIALS = apiTokenJSON.token;
   }
-  return cloudConfig.AUTH_TOKEN as string;
+  return cloudConfig.WLE_CREDENTIALS as string;
 };
 
 export const validateServerUrl = (

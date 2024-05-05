@@ -44,12 +44,12 @@ export interface Page {
 }
 
 /**
- * Either AUTH_TOKEN or AUTH_TOKEN_LOCATION should be set. If none are set,
+ * Either WLE_CREDENTIALS or WLE_CREDENTIALS_LOCATION should be set. If none are set,
  * the library tries to find a wle-apitoken.json in the current work directory
  */
 export type PageConfig = PartialBy<
-  Pick<CloudConfig, 'AUTH_TOKEN' | 'COMMANDER_URL' | 'AUTH_TOKEN_LOCATION'>,
-  'AUTH_TOKEN' | 'AUTH_TOKEN_LOCATION'
+  Pick<CloudConfig, 'WLE_CREDENTIALS' | 'COMMANDER_URL' | 'WLE_CREDENTIALS_LOCATION'>,
+  'WLE_CREDENTIALS' | 'WLE_CREDENTIALS_LOCATION'
 >;
 
 /**

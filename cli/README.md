@@ -171,7 +171,7 @@ npm exec wl-cloud page create my-fancy-project ./deploy
 #### Command line with env args for auth token
 
 ```shell
-export AUTH_TOKEN=YOUWLAPITOKEN && npm exec wl-cloud page create my-fancy-proejct ./deploy
+export WLE_CREDENTIALS=YOUWLAPITOKEN && npm exec wl-cloud page create my-fancy-proejct ./deploy
 ```
 
 #### package.json script
