@@ -12,8 +12,8 @@ export interface ServerConfig {
   SERVER_URL: string;
   COMMANDER_URL?: string;
   IS_LOCAL_SERVER?: boolean;
-  AUTH_TOKEN_LOCATION?: string;
-  AUTH_TOKEN?: string;
+  WLE_CREDENTIALS_LOCATION?: string;
+  WLE_CREDENTIALS?: string;
 }
 
 const defaultConfig: Partial<ServerConfig> = {
@@ -21,7 +21,7 @@ const defaultConfig: Partial<ServerConfig> = {
   SERVER_URL: process.env.SERVER_URL,
   COMMANDER_URL: process.env.COMMANDER_URL || 'https://cloud.wonderland.dev',
   IS_LOCAL_SERVER: process.env.IS_LOCAL_SERVER === 'true',
-  AUTH_TOKEN_LOCATION: path.join(
+  WLE_CREDENTIALS_LOCATION: path.join(
     process.env.AUTH_JSON_LOCATION ||
       path.join(process.cwd(), 'wle-apitoken.json')
   ),

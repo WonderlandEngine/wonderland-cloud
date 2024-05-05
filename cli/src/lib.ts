@@ -16,7 +16,7 @@ const defaultConfig: Partial<CloudConfig> = {
   IS_LOCAL_SERVER: process.env.IS_LOCAL_SERVER === 'true',
   PAGE_CONFIG_LOCATION: process.env.PAGE_CONFIG_LOCATION,
   PAGE_ACCESS: process.env.ACCESS,
-  AUTH_TOKEN_LOCATION: path.join(
+  WLE_CREDENTIALS_LOCATION: path.join(
     process.env.AUTH_JSON_LOCATION ||
       path.join(process.cwd(), 'wle-apitoken.json')
   ),
