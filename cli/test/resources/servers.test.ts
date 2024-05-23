@@ -14,11 +14,11 @@ const config: ServerConfig = {
     WORK_DIR: 'current',
     SERVER_URL: `https://server.wonderland.dev/${serverName}-develop`,
     COMMANDER_URL: 'https://cloud.wonderland.dev',
-    AUTH_TOKEN: 'abcdefghijklmnop',
+    WLE_CREDENTIALS: 'abcdefghijklmnop',
     /* we need to add a non existing location,
     otherwise it will use the api token from
     our local file */
-    AUTH_TOKEN_LOCATION: 'non-existing-location',
+    WLE_CREDENTIALS_LOCATION: 'non-existing-location',
 };
 //@ts-ignore
 global.fetch = jest.fn();
@@ -96,7 +96,7 @@ describe('test servers resource client', () => {
             // mock upload file request
             console.log(config.COMMANDER_URL);
             expect(serversClient.config).toMatchObject({
-                AUTH_TOKEN: config.AUTH_TOKEN,
+                WLE_CREDENTIALS: config.WLE_CREDENTIALS,
                 COMMANDER_URL: config.COMMANDER_URL,
                 IS_LOCAL_SERVER: false,
                 SERVER_URL: config.SERVER_URL,
@@ -118,7 +118,7 @@ describe('test servers resource client', () => {
             // @ts-ignore
             const updatePackageRequestData = fetch.mock.calls[0][1];
             expect(updatePackageRequestData.headers).toEqual({
-                authorization: config.AUTH_TOKEN,
+                authorization: config.WLE_CREDENTIALS,
             });
             expect(updatePackageRequestData.method).toEqual('POST');
             const bodySymbols = Object.getOwnPropertySymbols(
@@ -151,7 +151,7 @@ describe('test servers resource client', () => {
                 {
                     body: JSON.stringify({name: serverName}),
                     headers: {
-                        authorization: config.AUTH_TOKEN,
+                        authorization: config.WLE_CREDENTIALS,
                         'content-type': 'application/json',
                     },
                     method: 'POST',
@@ -164,7 +164,7 @@ describe('test servers resource client', () => {
                 {
                     body: JSON.stringify({name: serverName}),
                     headers: {
-                        authorization: config.AUTH_TOKEN,
+                        authorization: config.WLE_CREDENTIALS,
                         'content-type': 'application/json',
                     },
                     method: 'POST',
