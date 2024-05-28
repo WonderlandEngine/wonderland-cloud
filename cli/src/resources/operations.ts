@@ -43,7 +43,7 @@ export class OperationsClient {
     }
 
     if (result.error) {
-      logMessage(jobId, 'Operation finished with an error', result.error);
+      logMessage(jobId, 'Operation failed with error:', result.error);
       throw new Error(result.error.message || 'unknown error');
     }
     return result.result as T;

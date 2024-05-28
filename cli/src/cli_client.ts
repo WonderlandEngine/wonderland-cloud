@@ -341,8 +341,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           });
 
           logMessage(
-            deleteProjectSettings.projectName,
-            `domain and files successfully deleted`,
+            `Successfully deleted domain and files for ${deleteProjectSettings.projectName}`,
           );
 
           break;
@@ -384,7 +383,8 @@ const evalCommandWrapped = async (promise: Promise<void>) => {
   try {
     await promise;
   } catch (error) {
-    logMessage('Found error during processing', (error as Error).message);
+    logMessage('Error:', (error as Error).message);
+    process.exit(1);
   }
 };
 
