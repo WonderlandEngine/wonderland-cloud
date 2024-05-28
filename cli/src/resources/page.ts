@@ -244,7 +244,7 @@ export class PageClient {
       'deploy.tar'
     );
 
-    await compressing.tar.compressDir(sourceDir, destinationFile);
+    await compressing.tgz.compressDir(sourceDir, destinationFile);
     logMessage('compressed files from', sourceDir, 'to', destinationFile);
     return destinationFile;
   }
@@ -291,7 +291,7 @@ export class PageClient {
     const formData = new FormData();
     const file = fs.readFileSync(deploymentArchivePath);
 
-    formData.append('file', new Blob([file]), 'deploy.tar');
+    formData.append('file', new Blob([file]), 'deploy.tar.gz');
     formData.append('projectName', projectName);
     formData.append('isPublic', `${isPublic}`);
     formData.append('withThreads', `${withThreads}`);

@@ -1,5 +1,5 @@
 import { CloudConfig, getAndValidateAuthToken } from '../cli_config';
-import { logMessage, PartialBy } from '../utils';
+import { debugMessage, logMessage, PartialBy } from '../utils';
 import path from 'path';
 import compressing from 'compressing';
 import * as fs from 'fs';
@@ -37,7 +37,7 @@ export class OperationsClient {
   async waitUntilJobHasFinished<T = any>(jobId: string) {
     let result = await this.get(jobId);
     while (result.isRunning) {
-      logMessage('wait 10seconds before next poll...');
+      logMessage('operation is still running, please wait...');
       await new Promise((resolve) => setTimeout(resolve, 10000));
       result = await this.get(jobId);
     }
@@ -54,7 +54,7 @@ export class OperationsClient {
    * @param jobId
    */
   async get(jobId: string): Promise<Operation> {
-    logMessage('loading operation status... ', jobId);
+    debugMessage('loading operation status... ', jobId);
     const response = await fetch(
       `${this.config.COMMANDER_URL}/api/operations/${jobId}`,
       {
@@ -66,7 +66,7 @@ export class OperationsClient {
     );
     const serverData = await response.json();
     if (response.status < 300) {
-      logMessage('successfully got operation status', serverData);
+      debugMessage('successfully got operation status', serverData);
       return serverData;
     } else {
       logMessage('failed to get operation status', serverData);
