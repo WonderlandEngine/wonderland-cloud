@@ -1,5 +1,5 @@
 import { CloudConfig, getAndValidateAuthToken } from '../cli_config';
-import { logMessage, PartialBy } from '../utils';
+import { debugMessage, logMessage, PartialBy } from '../utils';
 import path from 'path';
 import compressing from 'compressing';
 import * as fs from 'fs';
@@ -37,13 +37,13 @@ export class OperationsClient {
   async waitUntilJobHasFinished<T = any>(jobId: string) {
     let result = await this.get(jobId);
     while (result.isRunning) {
-      logMessage('wait 10seconds before next poll...');
+      logMessage('Operation is still running, please wait...');
       await new Promise((resolve) => setTimeout(resolve, 10000));
       result = await this.get(jobId);
     }
 
     if (result.error) {
-      logMessage(jobId, 'operation finished with an error', result.error);
+      logMessage(jobId, 'Operation failed with error:', result.error);
       throw new Error(result.error.message || 'unknown error');
     }
     return result.result as T;
@@ -54,7 +54,7 @@ export class OperationsClient {
    * @param jobId
    */
   async get(jobId: string): Promise<Operation> {
-    logMessage('loading operation status... ', jobId);
+    debugMessage('Loading operation status... ', jobId);
     const response = await fetch(
       `${this.config.COMMANDER_URL}/api/operations/${jobId}`,
       {
@@ -66,11 +66,11 @@ export class OperationsClient {
     );
     const serverData = await response.json();
     if (response.status < 300) {
-      logMessage('successfully got operation status', serverData);
+      debugMessage('Successfully got operation status', serverData);
       return serverData;
     } else {
-      logMessage('failed to get operation status', serverData);
-      throw Error('failed to get operation status');
+      logMessage('Failed to get operation status', serverData);
+      throw Error('Failed to get operation status');
     }
   }
 }
