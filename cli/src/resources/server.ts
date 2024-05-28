@@ -1,4 +1,4 @@
-import { asyncTimeout, logMessage } from '../utils';
+import { asyncTimeout, debugMessage, logMessage } from '../utils';
 import { getAndValidateAuthToken, validateServerUrl } from '../cli_config';
 import ws from 'ws';
 import process from 'process';
@@ -109,7 +109,7 @@ export class ServerClient {
       const jsonMessage = JSON.parse(message);
       if (jsonMessage.authenticated) {
         this.connectionId = jsonMessage.id;
-        logMessage('created websocket keep alive ping interval');
+        logMessage('Created websocket keep alive ping interval');
         this.pingInterval = setInterval(() => {
           this.wsClient?.send('ping');
         }, 10000);
@@ -181,7 +181,7 @@ export class ServerClient {
       await new Promise((resolve) => setTimeout(resolve, 5000));
       return this.#sendStartServerSignal();
     } else {
-      logMessage('failed to start server!!', await response.json());
+      logMessage('Failed to start server!!', await response.json());
       throw new Error('failed to start server!');
     }
   }
@@ -230,14 +230,14 @@ export class ServerClient {
       } else {
         this.wsUrl = this.config.SERVER_URL?.replace('http', 'ws') as string;
       }
-      logMessage('waiting for server to be up and running...');
+      logMessage('Waiting for server to be up and running...');
       await this.#waitForWSClientOpen();
-      logMessage('server is reachable, establishing debug connection.');
+      logMessage('Server is reachable, establishing debug connection.');
       this.#createWsClient();
       // let's await the result of out WS connection
       return promise;
     } catch (error) {
-      logMessage('failed to create debug server connection', (error as Error).cause || (error as Error).message);
+      logMessage('Failed to create debug server connection', (error as Error).cause || (error as Error).message);
     }
   }
 
@@ -249,7 +249,7 @@ export class ServerClient {
   }
 
   #createWsClient(maxAttempts = 5, attempt = 0) {
-    logMessage('creating new WS client connection', this.wsUrl);
+    logMessage('Creating new WS client connection', this.wsUrl);
     const client = new ws(this.wsUrl);
     client.on('open', () => {
       client.on('message', this.#handleWsMessage.bind(this));
@@ -261,7 +261,7 @@ export class ServerClient {
       );
     });
     client.on('error', async (err) => {
-      logMessage('websocket client closed with error', err);
+      logMessage('Websocket client closed with error', err);
       if (maxAttempts === attempt) {
         if (this.wsConFinData.rejector) {
           this.wsConFinData.rejector(err);
@@ -275,7 +275,7 @@ export class ServerClient {
     client.on('close', async (code, reason) => {
       if (code === 1006) {
         logMessage(
-          'websocket client abnormally closed, reconnecting...',
+          'Websocket client abnormally closed, reconnecting...',
           code,
           reason.toString(),
         );
@@ -284,7 +284,7 @@ export class ServerClient {
         this.wsClient = this.#createWsClient(maxAttempts, attempt + 1);
       }
       if (this.wsConFinData.resolver) {
-        logMessage('websocket client closed', code, reason.toString());
+        logMessage('Websocket client closed', code, reason.toString());
         this.wsConFinData.resolver({ code, reason: reason.toString() });
       }
     });
@@ -293,13 +293,13 @@ export class ServerClient {
   }
 
   #listenToFileChanges() {
-    logMessage('listening for file changes...');
+    logMessage('Listening for file changes...');
     new Promise((resolve) => {
       const watcher = fs.watch(this.workDirectory, async (event, filename) => {
-        logMessage('found a file change!', filename);
+        logMessage('Found a file change!', filename);
         watcher.close();
         await this.#handleFileChange();
-        logMessage('finished handling file change');
+        logMessage('Finished handling file change');
         resolve(null);
       });
     }).then(() => {
@@ -318,12 +318,12 @@ export class ServerClient {
         this.fileChangePromise = this.#processFileChange();
         await this.fileChangePromise;
       } catch (error) {
-        logMessage('could not handle file change!', (error as Error).cause || (error as Error).message);
+        logMessage('Could not handle file change!', (error as Error).cause || (error as Error).message);
       }
       delete this.fileChangePromise;
     } else {
-      logMessage(
-        'file change operation already in progress skipping current file change',
+      debugMessage(
+        'File change operation already in progress skipping current file change',
       );
     }
   }
@@ -337,10 +337,10 @@ export class ServerClient {
         },
         (error) => {
           if (error) {
-            logMessage('failed to pack files', (error as Error).cause || (error as Error).message);
+            logMessage('Failed to pack files', (error as Error).cause || (error as Error).message);
             return reject(error);
           }
-          logMessage('finished packing files!');
+          logMessage('Finished packing files!');
           return resolve(null);
         },
       );
@@ -348,7 +348,7 @@ export class ServerClient {
   }
 
   async #testDeployment() {
-    logMessage('testing deployment...');
+    logMessage('Testing deployment...');
     const response = await fetch(
       `${this.config.COMMANDER_URL}/api/servers/test-deployment`,
       {
@@ -364,15 +364,15 @@ export class ServerClient {
     );
     const serverData = await response.json();
     if (response.status < 400) {
-      logMessage('successfully tested deployment', serverData);
+      logMessage('Successfully tested deployment', serverData);
     } else {
-      logMessage('failed to test deployment', serverData);
-      throw Error('failed to test deployment');
+      logMessage('Failed to test deployment', serverData);
+      throw Error('Failed to test deployment');
     }
   }
 
   async #validateDeployment() {
-    logMessage('validating deployment...');
+    logMessage('Validating deployment...');
     const response = await fetch(
       `${this.config.COMMANDER_URL}/api/servers/validate-deployment`,
       {
@@ -388,15 +388,15 @@ export class ServerClient {
     );
     const serverData = await response.json();
     if (response.status < 400) {
-      logMessage('successfully validating deployment', serverData);
+      logMessage('Successfully validating deployment', serverData);
     } else {
-      logMessage('failed to validating deployment', serverData);
-      throw Error('failed to validating deployment');
+      logMessage('Failed to validating deployment', serverData);
+      throw Error('Failed to validating deployment');
     }
   }
 
   async #updatePackageAndServer() {
-    logMessage('uploading server package and recreating server...');
+    logMessage('Uploading server package and recreating server...');
     const formData = new FormData();
     const file = fs.readFileSync(
       path.join(this.workDirectory, this.packedPackageName),
@@ -418,7 +418,7 @@ export class ServerClient {
     const serverData = await response.json();
     if (response.status < 400) {
       logMessage(
-        'successfully uploaded package and created server',
+        'Successfully uploaded package and created server',
         serverData,
       );
     } else {
@@ -427,7 +427,7 @@ export class ServerClient {
         serverData,
       );
       throw Error(
-        'failed to upload and recreate server' + JSON.stringify(serverData),
+        'Failed to upload and recreate server' + JSON.stringify(serverData),
       );
     }
   }
@@ -449,11 +449,11 @@ export class ServerClient {
       if (response.status < 400) {
         return listResponse;
       } else {
-        logMessage('failed to list servers', listResponse);
+        logMessage('Failed to list servers', listResponse);
         throw Error(JSON.stringify(listResponse));
       }
     } catch (error) {
-      logMessage('failed to list servers', (error as Error).cause || (error as Error).message);
+      logMessage('Failed to list servers', (error as Error).cause || (error as Error).message);
       throw error;
     }
   }
@@ -478,15 +478,15 @@ export class ServerClient {
         },
       );
       if (response.status < 400) {
-        logMessage('deleted server', this.serverName);
+        logMessage('Deleted server', this.serverName);
         return true;
       } else {
         const deleteResponse = await response.json();
-        logMessage('failed to delete server', deleteResponse);
+        logMessage('Failed to delete server', deleteResponse);
         throw Error(JSON.stringify(deleteResponse));
       }
     } catch (error) {
-      logMessage('failed to delete server', (error as Error).cause || (error as Error).message);
+      logMessage('Failed to delete server', (error as Error).cause || (error as Error).message);
       throw error;
     }
   }
@@ -503,9 +503,9 @@ export class ServerClient {
       await this.#updatePackageAndServer();
       await this.#validateDeployment();
       await this.#testDeployment();
-      logMessage('new server deployment is up and running!');
+      logMessage('New server deployment is up and running!');
     } catch (error) {
-      logMessage('failed to update server', (error as Error).cause || (error as Error).message);
+      logMessage('Failed to update server', (error as Error).cause || (error as Error).message);
       throw error;
     }
   }
@@ -531,7 +531,7 @@ export class ServerClient {
     })
       .then((r) => r.json())
       .then((data) => {
-        logMessage('got response from server', data);
+        logMessage('Got response from server', data);
       });
   }
 }

@@ -37,13 +37,13 @@ export class OperationsClient {
   async waitUntilJobHasFinished<T = any>(jobId: string) {
     let result = await this.get(jobId);
     while (result.isRunning) {
-      logMessage('operation is still running, please wait...');
+      logMessage('Operation is still running, please wait...');
       await new Promise((resolve) => setTimeout(resolve, 10000));
       result = await this.get(jobId);
     }
 
     if (result.error) {
-      logMessage(jobId, 'operation finished with an error', result.error);
+      logMessage(jobId, 'Operation finished with an error', result.error);
       throw new Error(result.error.message || 'unknown error');
     }
     return result.result as T;
@@ -54,7 +54,7 @@ export class OperationsClient {
    * @param jobId
    */
   async get(jobId: string): Promise<Operation> {
-    debugMessage('loading operation status... ', jobId);
+    debugMessage('Loading operation status... ', jobId);
     const response = await fetch(
       `${this.config.COMMANDER_URL}/api/operations/${jobId}`,
       {
@@ -66,11 +66,11 @@ export class OperationsClient {
     );
     const serverData = await response.json();
     if (response.status < 300) {
-      debugMessage('successfully got operation status', serverData);
+      debugMessage('Successfully got operation status', serverData);
       return serverData;
     } else {
-      logMessage('failed to get operation status', serverData);
-      throw Error('failed to get operation status');
+      logMessage('Failed to get operation status', serverData);
+      throw Error('Failed to get operation status');
     }
   }
 }

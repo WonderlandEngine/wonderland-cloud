@@ -135,8 +135,8 @@ export class PageClient {
       logMessage('Successfully loaded page', serverData);
       return serverData;
     }
-    logMessage('failed to get page', pageName, serverData);
-    throw Error('failed to get project information');
+    logMessage('Failed to get page', pageName, serverData);
+    throw Error('Failed to get project information');
   }
 
   /**
@@ -157,12 +157,12 @@ export class PageClient {
     );
     const serverData = await response.json();
     if (response.status < 400) {
-      logMessage('successfully created delete project operation', serverData);
+      logMessage('Successfully created delete project operation', serverData);
       await this.operationsClient.waitUntilJobHasFinished(serverData.jobId);
       return true;
     } else {
-      logMessage('failed to create delete project operation', serverData);
-      throw Error('failed to delete project files');
+      logMessage('Failed to create delete project operation', serverData);
+      throw Error('Failed to delete project files');
     }
   }
 
@@ -187,8 +187,8 @@ export class PageClient {
     if (response.status < 400) {
       return projects;
     } else {
-      logMessage('failed to list projects', projects);
-      throw Error('failed to list project files');
+      logMessage('Failed to list projects', projects);
+      throw Error('Failed to list project files');
     }
   }
 
@@ -236,7 +236,7 @@ export class PageClient {
   }
 
   async #compressProjectFiles(deploymentDirLocation: string) {
-    logMessage('compressing files...');
+    logMessage('Compressing files...');
     const sourceDir = path.join(deploymentDirLocation);
     const destinationFile = path.join(
       deploymentDirLocation,
@@ -245,7 +245,7 @@ export class PageClient {
     );
 
     await compressing.tgz.compressDir(sourceDir, destinationFile);
-    logMessage('compressed files from', sourceDir, 'to', destinationFile);
+    logMessage('Compressed files from', sourceDir, 'to', destinationFile);
     return destinationFile;
   }
 
@@ -255,20 +255,20 @@ export class PageClient {
     const localLocationExists = fs.existsSync(localLocation);
     const absoluteLocationExists = fs.existsSync(absoluteLocation);
     if (!localLocationExists && !absoluteLocationExists) {
-      logMessage('could not find provided location', location);
+      logMessage('Could not find provided location', location);
       throw new Error(`${location} not found!`);
     }
     const workLocation = localLocationExists ? localLocation : absoluteLocation;
     const dirContent = fs.readdirSync(workLocation);
     if (!dirContent.includes('index.html')) {
       logMessage(
-        'could not find index.html in deployment dir, cannot proceed with page upload'
+        'Could not find index.html in deployment dir, cannot proceed with page upload'
       );
       throw new Error('index.html in deployment directory missing');
     }
     if (!dirContent.includes('index.html')) {
       logMessage(
-        'could not find index.html in deployment dir, cannot proceed with project upload'
+        'Could not find index.html in deployment dir, cannot proceed with project upload'
       );
       throw new Error('index.html in deployment directory missing');
     }
@@ -283,7 +283,7 @@ export class PageClient {
     withThreads = true
   ): Promise<UploadPageResponse> {
     logMessage(
-      'uploading page files... ',
+      'Uploading page files... ',
       projectName,
       ' isPublic ',
       isPublic
@@ -308,19 +308,19 @@ export class PageClient {
     const serverData = await response.json();
     if (response.status < 400) {
       logMessage(
-        'successfully uploaded pages files, waiting for operation to finish',
+        'Successfully uploaded pages files, waiting for operation to finish',
         serverData
       );
       return serverData;
     } else {
-      logMessage('failed to upload pages files', serverData);
-      throw Error('failed to upload pages files');
+      logMessage('Failed to upload pages files', serverData);
+      throw Error('Failed to upload pages files');
     }
   }
 
   async #deleteDeploymentArchive(deploymentArchivePath: string) {
-    logMessage('removing deployment archive...');
+    logMessage('Removing deployment archive...');
     await fs.rmSync(deploymentArchivePath, { recursive: true });
-    logMessage('removed deployment archive');
+    logMessage('Removed deployment archive');
   }
 }

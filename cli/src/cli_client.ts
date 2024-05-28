@@ -41,15 +41,15 @@ const checkAndGetCommandArgs = (): ResourceCommandAndArguments => {
   const remainingArguments = positionals.splice(2, positionals.length);
   if (!resource) {
     logMessage(
-      `please provide a resource after 'wl-cloud', possible options are ${Object.values(
+      `Please provide a resource after 'wl-cloud', possible options are ${Object.values(
         CLI_RESOURCES,
-      )}`,
+      )} for help use wl-cloud <resource> <command> --help`,
     );
     process.exit(1);
   }
   if (!Object.values(CLI_RESOURCES).includes(resource as CLI_RESOURCES)) {
     logMessage(
-      `provided resource ${resource} is unknown, available resources: ${Object.values(
+      `Provided resource ${resource} is unknown, available resources: ${Object.values(
         CLI_RESOURCES,
       )} for help use wl-cloud <resource> <command> --help`,
     );
@@ -57,9 +57,9 @@ const checkAndGetCommandArgs = (): ResourceCommandAndArguments => {
   } else {
     if (resource === CLI_RESOURCES.PAGE && !Object.values(PAGES_COMMANDS).includes(command as PAGES_COMMANDS)) {
       logMessage(
-        `provided command ${command} is unknown, available commands: ${Object.values(
+        `Provided command ${command} is unknown, available commands: ${Object.values(
           PAGES_COMMANDS,
-        )}`,
+        )} for help use wl-cloud <resource> <command> --help`,
       );
       process.exit(1);
     }
@@ -68,7 +68,7 @@ const checkAndGetCommandArgs = (): ResourceCommandAndArguments => {
       resource === CLI_RESOURCES.SERVER && !Object.values(SERVERS_COMMANDS).includes(command as SERVERS_COMMANDS)
     ) {
       logMessage(
-        `provided command ${command} is unknown, available commands: ${Object.values(
+        `Provided command ${command} is unknown, available commands: ${Object.values(
           SERVERS_COMMANDS,
         )} for help use wl-cloud <resource> <command> --help`,
       );
@@ -87,18 +87,18 @@ const checkAndGetCommandArgs = (): ResourceCommandAndArguments => {
 const checkAndGetAccessType = (config: CloudConfig) => {
   let isPublic = false;
   if (config.PAGE_ACCESS) {
-    logMessage('found access argument', config.PAGE_ACCESS);
+    logMessage('Found access argument', config.PAGE_ACCESS);
     if (config.PAGE_ACCESS === 'public') {
       isPublic = true;
     } else if (config.PAGE_ACCESS === 'unlisted') {
       isPublic = false;
     } else {
       logMessage(
-        'unknown access parameter provided ',
+        'Unknown access parameter provided ',
         config.PAGE_ACCESS,
         ' possible options are "public" | "unlisted"',
       );
-      throw new Error('unknown access parameter provided');
+      throw new Error('Unknown access parameter provided');
     }
   }
   return isPublic;
@@ -124,12 +124,12 @@ const validateAndGetCreateArgs = (
 } => {
   if (args.length < 2) {
     logMessage(
-      'number of arguments does not match, command expects at least 2 arguments,' +
+      'Number of arguments does not match, command expects at least 2 arguments,' +
       ' the project name and the project location, ' +
       'the project location can be relative or absolute.\n' +
       ' Example usage: "wle-cloud pages create my-project-name --access unlisted --no-threads',
     );
-    throw new Error('failed to process command');
+    throw new Error('Failed to process command');
   }
   return {
     projectName: args[0],
@@ -174,7 +174,7 @@ const validateAndGetUpdateArgs = (
     projectConfig = JSON.parse(projectConfig);
   } catch (err) {
     logMessage(
-      'could not find deployment file or file corrupt, using cmd args instead',
+      'Could not find deployment file or file corrupt, using cmd args instead',
       projectConfig,
     );
   }
@@ -186,13 +186,13 @@ const validateAndGetUpdateArgs = (
       } else {
         projectConfig.isPublic = projectConfig.accessType === 'public';
       }
-      logMessage('found deployment config to use', projectConfig);
+      logMessage('Found deployment config to use', projectConfig);
       return projectConfig;
     }
     logMessage(
-      'project file not valid, please delete and provide project name and project directory to recreate a new deployment file',
+      'Project file not valid, please delete and provide project name and project directory to recreate a new deployment file',
     );
-    throw new Error('malformed project file');
+    throw new Error('Malformed project file');
   }
   return validateAndGetCreateArgs(args, config);
 };
@@ -236,7 +236,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
   }
   const client = new CloudClient(cliConfig);
   await client.validateAuthToken();
-  debugMessage('found command', command);
+  debugMessage('Found command', command);
 
   switch (resource) {
     case CLI_RESOURCES.SERVER:
@@ -262,7 +262,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           break;
         case SERVERS_COMMANDS.LIST:
           const servers = await client.server.list();
-          logMessage('found servers');
+          logMessage('Found servers');
           console.log(
             `SERVER_NAME - PACKAGE_NAME - CLI_ENABLED - HRTF_ENABLED`,
           );
@@ -287,7 +287,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           const getProjectResponse = await client.page.get(
             getProjectSettings.projectName,
           );
-          logMessage('found project');
+          logMessage('Found project');
           logMessage(getProjectResponse);
           break;
         case PAGES_COMMANDS.CREATE:
@@ -384,7 +384,7 @@ const evalCommandWrapped = async (promise: Promise<void>) => {
   try {
     await promise;
   } catch (error) {
-    logMessage('found error during processing', (error as Error).message);
+    logMessage('Found error during processing', (error as Error).message);
   }
 };
 
