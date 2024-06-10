@@ -3,9 +3,10 @@ import { CloudConfig, getAndValidateAuthToken } from './cli_config';
 import { config as dotenvConfig } from 'dotenv';
 import process from 'process';
 import { merge } from 'lodash';
-import { logMessage, debugMessage } from './utils';
+import { debugMessage, logMessage } from './utils';
 import { PageClient } from './resources/page';
 import { ServerClient } from './resources/server';
+import { CLI_RESOURCES } from './constants';
 
 dotenvConfig();
 
@@ -18,7 +19,7 @@ const defaultConfig: Partial<CloudConfig> = {
   PAGE_ACCESS: process.env.ACCESS,
   WLE_CREDENTIALS_LOCATION: path.join(
     process.env.AUTH_JSON_LOCATION ||
-      path.join(process.cwd(), 'wle-apitoken.json')
+    path.join(process.cwd(), 'wle-apitoken.json'),
   ),
 };
 
@@ -33,17 +34,31 @@ const defaultConfig: Partial<CloudConfig> = {
  */
 export class CloudClient {
   config: Partial<CloudConfig>;
-  page: PageClient;
-  server: ServerClient;
+  page?: PageClient;
+  server?: ServerClient;
   authToken: string;
 
-  constructor(cloudConfig: Partial<CloudConfig>) {
+  constructor(cloudConfig: Partial<CloudConfig>, enabledResource?: CLI_RESOURCES) {
     this.config = merge({}, defaultConfig, cloudConfig);
     this.authToken = getAndValidateAuthToken(this.config);
     debugMessage('initialized CloudClient with config', this.config);
     // we will throw an error if the work directory does not contain a package.json1
-    this.page = new PageClient(this.config);
-    this.server = new ServerClient(this.config);
+    if (enabledResource) {
+      switch (enabledResource) {
+        case CLI_RESOURCES.SERVER:
+          this.server = new ServerClient(this.config);
+          break;
+        case CLI_RESOURCES.PAGE:
+          this.page = new PageClient(this.config);
+          break;
+        default:
+          logMessage('unknown resource provided', enabledResource);
+          throw Error(`unknown resource ${enabledResource} provided`);
+      }
+    } else {
+      this.server = new ServerClient(this.config);
+      this.page = new PageClient(this.config);
+    }
   }
 
   /**
@@ -61,7 +76,7 @@ export class CloudClient {
       return true;
     } else {
       logMessage(
-        'Validation of the auth token failed, please make sure it exists and is not expired!'
+        'Validation of the auth token failed, please make sure it exists and is not expired!',
       );
       throw Error('provided auth token is not valid!');
     }

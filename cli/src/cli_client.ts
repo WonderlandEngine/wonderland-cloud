@@ -234,7 +234,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
     logMessage(helpDictionary[resource][commandVerb]);
     process.exit(0);
   }
-  const client = new CloudClient(cliConfig);
+  const client = new CloudClient(cliConfig, resource);
   await client.validateAuthToken();
   debugMessage('Found command', command);
 
@@ -249,11 +249,11 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           );
           break;
         case SERVERS_COMMANDS.DELETE:
-          await client.server.delete();
+          await client.server?.delete();
           break;
         case SERVERS_COMMANDS.DEBUG:
           try {
-            const result = await client.server.debug();
+            const result = await client.server?.debug();
             logMessage('WS connection closed with', result);
           } catch (err) {
             logMessage('WS connection failed:', err);
@@ -261,19 +261,19 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           }
           break;
         case SERVERS_COMMANDS.LIST:
-          const servers = await client.server.list();
+          const servers = await client.server?.list();
           logMessage('Found servers');
           console.log(
             `SERVER_NAME - PACKAGE_NAME - CLI_ENABLED - HRTF_ENABLED`,
           );
-          servers.map((server: CloudServer) =>
+          servers?.map((server: CloudServer) =>
             console.log(
               `${server.serverName} - ${server.packageName} - ${server.cli} - ${server.hrtfAudio}`,
             ),
           );
           break;
         case SERVERS_COMMANDS.UPDATE:
-          await client.server.update();
+          await client.server?.update();
           break;
       }
       break;
@@ -284,7 +284,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             commandArguments,
             cliConfig,
           );
-          const getProjectResponse = await client.page.get(
+          const getProjectResponse = await client.page?.get(
             getProjectSettings.projectName,
           );
           logMessage('Found project');
@@ -295,7 +295,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             commandArguments,
             cliConfig,
           );
-          const createProjectResponse = await client.page.create(
+          const createProjectResponse = await client.page?.create(
             createProjectSettings.projectLocation,
             createProjectSettings.projectName,
             createProjectSettings.isPublic,
@@ -332,7 +332,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
                   console.log('Project name mismatch, exiting');
                   process.exit(1);
                 } else {
-                  await client.page.delete(deleteProjectSettings.projectName);
+                  await client.page?.delete(deleteProjectSettings.projectName);
                   await deleteDeploymentConfig(cliConfig);
                   return resolve({});
                 }
@@ -350,7 +350,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             commandArguments,
             cliConfig,
           );
-          const updateProjectResponse = await client.page.update(
+          const updateProjectResponse = await client.page?.update(
             updateProjectSettings.projectLocation,
             updateProjectSettings.projectName,
             updateProjectSettings.isPublic,
@@ -363,9 +363,9 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           );
           break;
         case PAGES_COMMANDS.LIST:
-          const pages = await client.page.list();
+          const pages = await client.page?.list();
           console.log('found projects');
-          pages.map((page: Page) =>
+          pages?.map((page: Page) =>
             console.log(
               `${page.projectName} - ${page.accessType} - ${page.projectDomain} - ${page.fullProjectUrl}`,
             ),
