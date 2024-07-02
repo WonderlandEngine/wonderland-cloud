@@ -81,14 +81,14 @@ export class PageClient {
     projectLocation: string,
     projectName: string,
     isPublic: boolean,
-    withThreads: boolean
+    withThreads: boolean,
   ) {
     return this.#validateCreateOrUpdate(
       projectLocation,
       projectName,
       isPublic,
       true,
-      withThreads
+      withThreads,
     );
   }
 
@@ -104,14 +104,14 @@ export class PageClient {
     projectLocation: string,
     projectName: string,
     isPublic: boolean,
-    withThreads: boolean
+    withThreads: boolean,
   ) {
     return this.#validateCreateOrUpdate(
       projectLocation,
       projectName,
       isPublic,
       false,
-      withThreads
+      withThreads,
     );
   }
 
@@ -128,7 +128,7 @@ export class PageClient {
         headers: {
           authorization: this.authToken,
         },
-      }
+      },
     );
     const serverData = await response.json();
     if (response.status < 400) {
@@ -153,7 +153,7 @@ export class PageClient {
         headers: {
           authorization: this.authToken,
         },
-      }
+      },
     );
     const serverData = await response.json();
     if (response.status < 400) {
@@ -181,7 +181,7 @@ export class PageClient {
           authorization: this.authToken,
           'content-type': 'application/json',
         },
-      }
+      },
     );
     const projects = await response.json();
     if (response.status < 400) {
@@ -197,24 +197,24 @@ export class PageClient {
     projectName: string,
     isPublic: boolean,
     create: boolean,
-    withThreads: boolean
+    withThreads: boolean,
   ) {
     const deploymentDirLocation = this.#validateDeploymentDir(projectLocation);
     const projectNameValidated = this.#validatePageName(projectName);
     const deploymentArchivePath = await this.#compressProjectFiles(
-      deploymentDirLocation
+      deploymentDirLocation,
     );
     const uploadProjectResponse = await this.#uploadProjectFiles(
       deploymentArchivePath,
       projectNameValidated,
       isPublic,
       create,
-      withThreads
+      withThreads,
     );
     await this.#deleteDeploymentArchive(deploymentArchivePath);
 
     await this.operationsClient.waitUntilJobHasFinished(
-      uploadProjectResponse.jobId
+      uploadProjectResponse.jobId,
     );
 
     return this.get(uploadProjectResponse.projectName);
@@ -222,15 +222,15 @@ export class PageClient {
 
   #validatePageName(projectName: string) {
     const validName = /^[a-z](([a-z]|\d)-?([a-z]|\d)?){0,20}[a-z]/gm.test(
-      projectName
+      projectName,
     );
     if (validName) {
       return projectName;
     }
     logMessage(
       'invalid page name, max length is 22 chars and it can only contain' +
-        ' lowercase letters and numbers connected with a single dash' +
-        ' validation RegExp /^[a-z](([a-z]|\\d)-?([a-z]|\\d)?){0,20}[a-z]/gm'
+      ' lowercase letters and numbers connected with a single dash' +
+      ' validation RegExp /^[a-z](([a-z]|\\d)-?([a-z]|\\d)?){0,20}[a-z]/gm',
     );
     throw new Error('page name validation failed!');
   }
@@ -241,7 +241,7 @@ export class PageClient {
     const destinationFile = path.join(
       deploymentDirLocation,
       '..',
-      'deploy.tar'
+      'deploy.tar',
     );
 
     await compressing.tgz.compressDir(sourceDir, destinationFile);
@@ -260,17 +260,33 @@ export class PageClient {
     }
     const workLocation = localLocationExists ? localLocation : absoluteLocation;
     const dirContent = fs.readdirSync(workLocation);
-    if (!dirContent.includes('index.html')) {
+    let binExists = false;
+    let texturesBinExists = false;
+    let bundleExists = false;
+    let indexHtmlExists = false;
+    dirContent.forEach((entry) => {
+      if (!binExists) {
+        binExists =
+          entry.endsWith('.bin') &&
+          !entry.endsWith('-textures.bin') &&
+          !entry.endsWith('-LoadingScreen.bin');
+      }
+      if (!texturesBinExists) {
+        texturesBinExists = entry.endsWith('-textures.bin');
+      }
+      if (!bundleExists) {
+        bundleExists = entry.endsWith('-bundle.js');
+      }
+      if (!indexHtmlExists) {
+        indexHtmlExists = entry.endsWith('index.html');
+      }
+    });
+    if (!(binExists && texturesBinExists && bundleExists && indexHtmlExists)) {
       logMessage(
-        'Could not find index.html in deployment dir, cannot proceed with page upload'
+        `Could not file mandatory files in directory binExists:${binExists}`
+        + ` texturesBinExists:${texturesBinExists} bundleExists:${bundleExists} indexHtmlExists:${indexHtmlExists}`,
       );
-      throw new Error('index.html in deployment directory missing');
-    }
-    if (!dirContent.includes('index.html')) {
-      logMessage(
-        'Could not find index.html in deployment dir, cannot proceed with project upload'
-      );
-      throw new Error('index.html in deployment directory missing');
+      throw new Error('Mandatory files missing, cannot proceed!');
     }
     return workLocation;
   }
@@ -280,14 +296,14 @@ export class PageClient {
     projectName: string,
     isPublic: boolean,
     create: boolean,
-    withThreads = true
+    withThreads = true,
   ): Promise<UploadPageResponse> {
     logMessage(
       'Uploading page files... ',
       projectName,
       ' isPublic ',
       isPublic,
-      ` with Threads ${withThreads}`
+      ` with Threads ${withThreads}`,
     );
     const formData = new FormData();
     const file = fs.readFileSync(deploymentArchivePath);
@@ -304,13 +320,13 @@ export class PageClient {
         headers: {
           authorization: this.authToken,
         },
-      }
+      },
     );
     const serverData = await response.json();
     if (response.status < 400) {
       logMessage(
         'Successfully uploaded pages files, waiting for operation to finish',
-        serverData
+        serverData,
       );
       return serverData;
     } else {
