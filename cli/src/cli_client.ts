@@ -318,7 +318,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             cliConfig,
           );
 
-          await new Promise((resolve) => {
+          const toDelete = cliConfig.FORCE || await new Promise((resolve) => {
             readLineInterface.question(
               'Are you sure that you want to delete the project with the full name ' +
               deleteProjectSettings.projectName +
@@ -328,17 +328,22 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
                   deleteProjectSettings.projectName !==
                   projectName.replace(/(\r\n|\n|\r)/gm, '')
                 ) {
-                  console.log(projectName);
-                  console.log('Project name mismatch, exiting');
-                  process.exit(1);
+                  return resolve(false);
                 } else {
-                  await client.page?.delete(deleteProjectSettings.projectName);
-                  await deleteDeploymentConfig(cliConfig);
-                  return resolve({});
+                  return resolve(true);
                 }
               },
             );
           });
+
+          if (!toDelete) {
+            console.log(deleteProjectSettings.projectName);
+            console.log('Project name mismatch, exiting');
+            process.exit(1);
+          }
+
+          await client.page?.delete(deleteProjectSettings.projectName);
+          await deleteDeploymentConfig(cliConfig);
 
           logMessage(
             `Successfully deleted domain and files for ${deleteProjectSettings.projectName}`,

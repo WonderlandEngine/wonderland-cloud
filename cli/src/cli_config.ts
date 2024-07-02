@@ -59,6 +59,11 @@ const parseArgsConfig: ParseArgsConfig = {
       short: 'h',
       default: false,
     },
+    force: {
+      type: 'boolean',
+      short: 'f',
+      default: false,
+    },
   },
   strict: !process.env.TEST_MODE,
 };
@@ -90,7 +95,8 @@ export interface CliClientArgs {
   access: string;
   commanderUrl: string;
   noThreads: boolean;
-  help: boolean
+  help: boolean;
+  force: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -110,6 +116,7 @@ export interface CloudConfig {
   COMMANDER_URL?: string;
   WLE_CREDENTIALS_LOCATION: string;
   HELP: boolean;
+  FORCE: boolean
 }
 
 const cliConfig: Partial<CloudConfig> = {
@@ -122,17 +129,18 @@ const cliConfig: Partial<CloudConfig> = {
   PAGE_NO_THREADS: args.noThreads,
   COMMANDER_URL: args.commanderUrl,
   WLE_CREDENTIALS_LOCATION: path.join(args.authJsonLocation),
-  HELP: args.help
+  HELP: args.help,
+  FORCE: args.force
 };
 
 export const getAndValidateAuthToken = (
-  cloudConfig: Partial<CloudConfig>
+  cloudConfig: Partial<CloudConfig>,
 ): string => {
   // if auth token location is not set, check under default location
   if (!cloudConfig.WLE_CREDENTIALS_LOCATION) {
     cloudConfig.WLE_CREDENTIALS_LOCATION = path.join(
       process.cwd(),
-      'wle-apitoken.json'
+      'wle-apitoken.json',
     );
   }
   // check if auth token exists under the WLE_CREDENTIALS_LOCATION
@@ -140,8 +148,8 @@ export const getAndValidateAuthToken = (
     assert.ok(
       cloudConfig.WLE_CREDENTIALS,
       'Could not find WLE api token file and also missing WLE_CREDENTIALS, please either set via cmd arg --authToken="YOUR_WLE_CREDENTIALS" or via WLE_CREDENTIALS env var.\n' +
-        'Alternatively you can also provide a path to your WLE api token file via "--authJsonLocation" or `AUTH_JSON_LOCATION` env var. Default location for your API token is: \n' +
-        `${path.join(process.cwd(), 'wle-apitoken.json')}`
+      'Alternatively you can also provide a path to your WLE api token file via "--authJsonLocation" or `AUTH_JSON_LOCATION` env var. Default location for your API token is: \n' +
+      `${path.join(process.cwd(), 'wle-apitoken.json')}`,
     );
   } else {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -149,12 +157,12 @@ export const getAndValidateAuthToken = (
     assert.ok(
       apiTokenJSON.token,
       `Missing "token" property in WLE api token file, located in ${cloudConfig.WLE_CREDENTIALS_LOCATION},\n` +
-        `please double check ` +
-        `if the token file is valid or else provide an auth token via WLE_CREDENTIALS env var or --authToken="YOUR_WLE_CREDENTIALS" argument. \n` +
-        `Default location for token file is ${path.join(
-          process.cwd(),
-          'wle-apitoken.json'
-        )}`
+      `please double check ` +
+      `if the token file is valid or else provide an auth token via WLE_CREDENTIALS env var or --authToken="YOUR_WLE_CREDENTIALS" argument. \n` +
+      `Default location for token file is ${path.join(
+        process.cwd(),
+        'wle-apitoken.json',
+      )}`,
     );
     cloudConfig.WLE_CREDENTIALS = apiTokenJSON.token;
   }
@@ -162,11 +170,11 @@ export const getAndValidateAuthToken = (
 };
 
 export const validateServerUrl = (
-  cloudConfig: Partial<CloudConfig>
+  cloudConfig: Partial<CloudConfig>,
 ): string => {
   assert.ok(
     cloudConfig.SERVER_URL,
-    'Missing SERVER_URL, please either set via cmd arg --serverUrl="YOUR_SERVER_URL" or via SERVER_URL env var'
+    'Missing SERVER_URL, please either set via cmd arg --serverUrl="YOUR_SERVER_URL" or via SERVER_URL env var',
   );
 
   if (!cloudConfig.IS_LOCAL_SERVER) {
@@ -178,17 +186,17 @@ export const validateServerUrl = (
     assert.match(
       protocol,
       /https/,
-      `Provided server url protocol is not https, but ${protocol}`
+      `Provided server url protocol is not https, but ${protocol}`,
     );
     assert.match(
       domain,
       /server.wonderland.dev/,
-      `Provided server domain is not 'server.wonderland.dev', please make sure to se the CLI url from the server settings page of your server`
+      `Provided server domain is not 'server.wonderland.dev', please make sure to se the CLI url from the server settings page of your server`,
     );
     assert.match(
       serverPathEnding,
       /-develop/,
-      `Provided server path is not ending with '-develop', please make sure to se the CLI url from the server settings page of your server`
+      `Provided server path is not ending with '-develop', please make sure to se the CLI url from the server settings page of your server`,
     );
   }
   return cloudConfig.SERVER_URL;
