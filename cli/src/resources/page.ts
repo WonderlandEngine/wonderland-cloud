@@ -286,7 +286,8 @@ export class PageClient {
       'Uploading page files... ',
       projectName,
       ' isPublic ',
-      isPublic
+      isPublic,
+      ` with Threads ${withThreads}`
     );
     const formData = new FormData();
     const file = fs.readFileSync(deploymentArchivePath);

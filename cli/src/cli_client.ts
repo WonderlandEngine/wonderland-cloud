@@ -186,6 +186,8 @@ const validateAndGetUpdateArgs = (
       } else {
         projectConfig.isPublic = projectConfig.accessType === 'public';
       }
+      // update withThreads if changed
+      projectConfig.withThreads = !config.PAGE_NO_THREADS;
       logMessage('Found deployment config to use', projectConfig);
       return projectConfig;
     }
