@@ -6,6 +6,7 @@ import fs from 'fs';
 import { exec } from 'child_process';
 import path from 'path';
 import { merge } from 'lodash';
+import { SUBSCRIPTION_TYPE, SubscriptionClient } from './subscriptions';
 
 export interface ServerConfig {
   WORK_DIR: string;
@@ -27,12 +28,6 @@ const defaultConfig: Partial<ServerConfig> = {
   ),
 };
 
-// TODO use SUBSCRIPTION_TYPE and CloudServer from this package in commander
-// eslint-disable-next-line no-shadow
-export enum SUBSCRIPTION_TYPE {
-  NORMAL = 0,
-  HRTF = 1,
-}
 
 export interface CloudServer {
   maxPlayers: number;
@@ -69,6 +64,7 @@ export class ServerClient {
     rejector?: (error: unknown) => void;
     resolver?: ({ code, reason }: { code: number; reason: string }) => void;
   };
+  subscriptionClient: SubscriptionClient;
 
   constructor(cloudConfig: Partial<ServerConfig>) {
     const mergedConfig = merge({}, defaultConfig, cloudConfig);
@@ -86,6 +82,7 @@ export class ServerClient {
       .replaceAll('@', '')
       .replaceAll('/', '-')}-${this.customPackageJson.version}.tgz`;
     this.wsConFinData = {};
+    this.subscriptionClient = new SubscriptionClient(cloudConfig);
   }
 
   #extractAndValidateServerUrl() {
@@ -341,6 +338,7 @@ export class ServerClient {
             return reject(error);
           }
           logMessage('Finished packing files!');
+
           return resolve(null);
         },
       );
@@ -395,16 +393,20 @@ export class ServerClient {
     }
   }
 
-  async #updatePackageAndServer() {
-    logMessage('Uploading server package and recreating server...');
+
+  async #uploadPackageAndServer({ update, serverName }: { update: boolean, serverName?: string }) {
+    logMessage('Uploading server package...');
     const formData = new FormData();
     const file = fs.readFileSync(
       path.join(this.workDirectory, this.packedPackageName),
     );
 
     formData.append('file', new Blob([file]), this.packedPackageName);
-    formData.append('serverName', this.serverName);
-    formData.append('upgradeServer', 'true');
+    formData.append('serverName', serverName || this.serverName);
+    if (update) {
+      formData.append('upgradeServer', 'true');
+    }
+
     const response = await fetch(
       `${this.config.COMMANDER_URL}/api/servers/file`,
       {
@@ -421,6 +423,7 @@ export class ServerClient {
         'Successfully uploaded package and created server',
         serverData,
       );
+      return serverData;
     } else {
       logMessage(
         'failed to upload package file and recreate server',
@@ -459,6 +462,36 @@ export class ServerClient {
   }
 
   /**
+   * load one server from the backend
+   */
+  async get({ serverName }: { serverName: string }): Promise<CloudServer> {
+    try {
+      this.#extractAndValidateServerUrl();
+      const response = await fetch(
+        `${this.config.COMMANDER_URL}/api/servers/${
+          serverName || this.serverName
+        }`,
+        {
+          method: 'GET',
+          headers: {
+            authorization: this.authToken,
+          },
+        },
+      );
+      if (response.status < 400) {
+        return await response.json();
+      } else {
+        const deleteResponse = await response.json();
+        logMessage('Failed to delete server', deleteResponse);
+        throw Error(JSON.stringify(deleteResponse));
+      }
+    } catch (error) {
+      logMessage('Failed to delete server', (error as Error).cause || (error as Error).message);
+      throw error;
+    }
+  }
+
+  /**
    * deletes the server from the current configuration, if provided,
    * serverName from argument is taken, else serverName from env vars,
    * SERVER_NAME
@@ -492,6 +525,80 @@ export class ServerClient {
   }
 
   /**
+   * Creates a new server deployment by packing the files,
+   * then uploading them to remote and deploy.
+   *
+   * Flow:
+   *
+   * laod subscrioptions
+   * check if we have a working subscription
+   * if yes use the first working sub for deployment
+   */
+  async create({ serverName, hrtfEnabled, isDevelop }: {
+    serverName: string,
+    hrtfEnabled: boolean,
+    isDevelop: boolean
+  }): Promise<CloudServer> {
+
+    const subscriptions = await this.subscriptionClient.list();
+
+
+    const validSubExists = subscriptions.find(sub =>
+      sub.type === SUBSCRIPTION_TYPE.TRIAL && isDevelop ? sub.availableCount.debug > 0 :
+        sub.type === (hrtfEnabled ? SUBSCRIPTION_TYPE.HRTF : SUBSCRIPTION_TYPE.NORMAL) &&
+        sub.availableCount[isDevelop ? 'debug' : 'production'] > 0);
+
+    if (!validSubExists) {
+      throw new Error('could not find a valid subscription for creating a new server');
+    }
+
+    if (!isDevelop) {
+      // TODO check if this applies to create a server
+      await this.#packFiles();
+    }
+
+    const { packageName } = await this.#uploadPackageAndServer({ update: false, serverName });
+    console.log({
+      name: serverName,
+      packageName,
+      fileName: this.packedPackageName,
+      cli: isDevelop,
+      hrtfAudio: hrtfEnabled,
+      subscriptionId: validSubExists.id,
+    });
+    const createServerResult = await fetch(this.config.COMMANDER_URL + '/api/servers', {
+      method: 'POST', // *GET, POST, PUT, DELETE, etc.
+      redirect: 'follow', // manual, *follow, error
+      referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+      body: JSON.stringify({
+        name: serverName,
+        packageName,
+        fileName: this.packedPackageName,
+        cli: isDevelop,
+        hrtfAudio: hrtfEnabled,
+        subscriptionId: validSubExists.id,
+      }),
+      headers: {
+        authorization: this.authToken,
+        'Content-Type': 'application/json',
+      },
+    });
+    const createData = await createServerResult.json();
+    if (createServerResult.status < 400) {
+      logMessage('Created a new server', createData);
+      return createData;
+    } else {
+      logMessage('Create server error', createData);
+      throw new Error('Failed to create a new server');
+    }
+    if (!isDevelop) {
+      await this.#validateDeployment();
+      await this.#testDeployment();
+    }
+
+  }
+
+  /**
    * Updates the server from the current config by packaging the current
    * project files, uploading them to the cloud, then validation and
    * testing the deployment. Returns null on success, else throws.
@@ -500,7 +607,7 @@ export class ServerClient {
     try {
       this.#extractAndValidateServerUrl();
       await this.#packFiles();
-      await this.#updatePackageAndServer();
+      await this.#uploadPackageAndServer({ update: true });
       await this.#validateDeployment();
       await this.#testDeployment();
       logMessage('New server deployment is up and running!');

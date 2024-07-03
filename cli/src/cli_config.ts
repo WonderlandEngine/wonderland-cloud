@@ -64,6 +64,15 @@ const parseArgsConfig: ParseArgsConfig = {
       short: 'f',
       default: false,
     },
+    develop:{
+      type: 'boolean',
+      short: 'd',
+      default: false
+    },
+    hrtf:{
+      type: 'boolean',
+      default: false
+    }
   },
   strict: !process.env.TEST_MODE,
 };
@@ -97,6 +106,8 @@ export interface CliClientArgs {
   noThreads: boolean;
   help: boolean;
   force: boolean;
+  develop: boolean,
+  hrtf: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -116,7 +127,9 @@ export interface CloudConfig {
   COMMANDER_URL?: string;
   WLE_CREDENTIALS_LOCATION: string;
   HELP: boolean;
-  FORCE: boolean
+  FORCE: boolean;
+  DEVELOP: boolean;
+  HRTF: boolean;
 }
 
 const cliConfig: Partial<CloudConfig> = {
@@ -130,7 +143,9 @@ const cliConfig: Partial<CloudConfig> = {
   COMMANDER_URL: args.commanderUrl,
   WLE_CREDENTIALS_LOCATION: path.join(args.authJsonLocation),
   HELP: args.help,
-  FORCE: args.force
+  FORCE: args.force,
+  DEVELOP: args.develop,
+  HRTF: args.hrtf
 };
 
 export const getAndValidateAuthToken = (

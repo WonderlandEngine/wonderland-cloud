@@ -1,11 +1,7 @@
 #!/usr/bin/env node
 import { CloudClient } from './lib';
-import cliConfig, {
-  CloudConfig,
-  getAndValidateAuthToken,
-  positionals,
-} from './cli_config';
-import { logMessage, debugMessage } from './utils';
+import cliConfig, { CloudConfig, getAndValidateAuthToken, positionals } from './cli_config';
+import { debugMessage, logMessage } from './utils';
 import path from 'path';
 import process from 'process';
 import fs from 'fs';
@@ -13,14 +9,10 @@ import { Page, UploadPageResponse } from './resources/page';
 import readline from 'readline';
 import { rm } from 'node:fs/promises';
 import { CloudServer } from './resources/server';
-import {
-  CLI_RESOURCES,
-  PAGES_COMMANDS,
-  SERVERS_COMMANDS,
-  COMMAND_ENUMS,
-} from './constants';
+import { CLI_RESOURCES, COMMAND_ENUMS, PAGES_COMMANDS, SERVERS_COMMANDS, SUBSCRIPTION_COMMAND } from './constants';
 
 import helpDictionary from './cli_help';
+import { SUBSCRIPTION_TYPE_STRING_MAPPING } from './resources/subscriptions';
 
 const readLineInterface = readline.createInterface({
   input: process.stdin,
@@ -243,11 +235,37 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
   switch (resource) {
     case CLI_RESOURCES.SERVER:
       switch (commandVerb) {
-        case SERVERS_COMMANDS.CREATE:
-          // todo add create via CLI and library
+        case SERVERS_COMMANDS.GET:
+          const [serverNameOne] = commandArguments;
+          const loadedServer = await client.server?.get({
+            serverName: serverNameOne,
+          });
           logMessage(
-            'Sorry, this command is currently under development \n',
-            'In the meantime you can use the UI to create a new server deployment https://cloud.wonderlandengine.dev/create-server',
+            'Loaded server', loadedServer,
+          );
+          break;
+        case SERVERS_COMMANDS.CREATE:
+          const [serverName] = commandArguments;
+          if (!serverName) {
+            throw new Error('Please provide a valid server name');
+          }
+
+          if (!serverName.match(
+            /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/gm,
+          )) {
+            throw new Error('Name can only contain numbers and lowercase characters');
+          }
+          logMessage(
+            'Creating a new server...', serverName,
+          );
+          const server = await client.server?.create({
+            serverName,
+            hrtfEnabled: cliConfig.HRTF,
+            isDevelop: cliConfig.DEVELOP,
+          });
+          logMessage(
+            'Created new server',
+            server,
           );
           break;
         case SERVERS_COMMANDS.DELETE:
@@ -376,6 +394,22 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             console.log(
               `${page.projectName} - ${page.accessType} - ${page.projectDomain} - ${page.fullProjectUrl}`,
             ),
+          );
+          break;
+      }
+      break;
+    case CLI_RESOURCES.SUBSCRIPTION:
+      switch (commandVerb) {
+        case SUBSCRIPTION_COMMAND.LIST:
+
+          const subs = await client.subscription?.list();
+          const foundSubs = subs?.map(sub => ({
+            ...sub,
+            type: SUBSCRIPTION_TYPE_STRING_MAPPING[sub.type],
+          }));
+          logMessage(
+            'Found subscriptions:',
+            foundSubs,
           );
           break;
       }
