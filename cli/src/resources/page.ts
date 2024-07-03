@@ -261,7 +261,6 @@ export class PageClient {
     const workLocation = localLocationExists ? localLocation : absoluteLocation;
     const dirContent = fs.readdirSync(workLocation);
     let binExists = false;
-    let texturesBinExists = false;
     let bundleExists = false;
     let indexHtmlExists = false;
     dirContent.forEach((entry) => {
@@ -271,9 +270,6 @@ export class PageClient {
           !entry.endsWith('-textures.bin') &&
           !entry.endsWith('-LoadingScreen.bin');
       }
-      if (!texturesBinExists) {
-        texturesBinExists = entry.endsWith('-textures.bin');
-      }
       if (!bundleExists) {
         bundleExists = entry.endsWith('-bundle.js');
       }
@@ -281,10 +277,10 @@ export class PageClient {
         indexHtmlExists = entry.endsWith('index.html');
       }
     });
-    if (!(binExists && texturesBinExists && bundleExists && indexHtmlExists)) {
+    if (!(binExists && bundleExists && indexHtmlExists)) {
       logMessage(
         `Could not file mandatory files in directory binExists:${binExists}`
-        + ` texturesBinExists:${texturesBinExists} bundleExists:${bundleExists} indexHtmlExists:${indexHtmlExists}`,
+        + ` bundleExists:${bundleExists} indexHtmlExists:${indexHtmlExists}`,
       );
       throw new Error('Mandatory files missing, cannot proceed!');
     }
