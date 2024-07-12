@@ -103,7 +103,7 @@ describe('test servers resource client', () => {
                 WORK_DIR: config.WORK_DIR,
             });
 
-            await serversClient.update();
+            await serversClient.update(serverName);
             // @ts-ignore
             expect(fs.readFileSync).toHaveBeenCalledWith(
                 `${config.WORK_DIR}/${packageFileName}`

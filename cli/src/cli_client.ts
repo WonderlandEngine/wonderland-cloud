@@ -234,27 +234,26 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
 
   switch (resource) {
     case CLI_RESOURCES.SERVER:
+      const [serverName] = commandArguments;
+
+      if (!serverName) {
+        throw new Error('Please provide a valid server name');
+      }
+      if (!serverName.match(
+        /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/gm,
+      )) {
+        throw new Error('Name can only contain numbers and lowercase characters');
+      }
       switch (commandVerb) {
         case SERVERS_COMMANDS.GET:
-          const [serverNameOne] = commandArguments;
           const loadedServer = await client.server?.get({
-            serverName: serverNameOne,
+            serverName,
           });
           logMessage(
             'Loaded server', loadedServer,
           );
           break;
         case SERVERS_COMMANDS.CREATE:
-          const [serverName] = commandArguments;
-          if (!serverName) {
-            throw new Error('Please provide a valid server name');
-          }
-
-          if (!serverName.match(
-            /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/gm,
-          )) {
-            throw new Error('Name can only contain numbers and lowercase characters');
-          }
           logMessage(
             'Creating a new server...', serverName,
           );
@@ -269,11 +268,11 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           );
           break;
         case SERVERS_COMMANDS.DELETE:
-          await client.server?.delete();
+          await client.server?.delete(serverName);
           break;
         case SERVERS_COMMANDS.DEBUG:
           try {
-            const result = await client.server?.debug();
+            const result = await client.server?.debug(serverName);
             logMessage('WS connection closed with', result);
           } catch (err) {
             logMessage('WS connection failed:', err);
@@ -293,7 +292,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           );
           break;
         case SERVERS_COMMANDS.UPDATE:
-          await client.server?.update();
+          await client.server?.update(serverName);
           break;
       }
       break;
@@ -425,7 +424,8 @@ const evalCommandWrapped = async (promise: Promise<void>) => {
     await promise;
   } catch (error) {
     logMessage('Error:', (error as Error).message);
-    process.exit(1);
+    await new Promise(resolve => setTimeout(resolve, 400));
+    throw error;
   }
 };
 

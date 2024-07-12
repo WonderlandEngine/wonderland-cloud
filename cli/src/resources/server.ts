@@ -85,10 +85,16 @@ export class ServerClient {
     this.subscriptionClient = new SubscriptionClient(cloudConfig);
   }
 
-  #extractAndValidateServerUrl() {
+  #extractAndValidateServerUrl(serverName: string) {
     if (!this.serverUrl) {
-      this.serverUrl = validateServerUrl(this.config);
-      this.serverName = this.extractServerName(this.serverUrl);
+      // example commander URL is https://staging.cloud.wonderland.dev
+      // so we need to split by // and insert the server subdomain before first element of domain
+      const parts = this.config.COMMANDER_URL?.split('/') as string[];
+      // last part contains the domain start so let's prepent server to it
+      parts[2] = `server.${parts[2]}`;
+      parts.push(serverName);
+      this.serverUrl = parts.join('/');
+      this.serverName = serverName;
     }
   }
 
@@ -153,13 +159,11 @@ export class ServerClient {
   }
 
   async #sendStartServerSignal(): Promise<boolean> {
-    const serverUrlParts = this.serverUrl.split('/');
-    const serverPath = serverUrlParts.pop()?.slice(0, -8);
     const response = await fetch(
       `${this.config.COMMANDER_URL}/api/servers/start`,
       {
         body: JSON.stringify({
-          path: serverPath,
+          path: this.serverName,
         }),
         method: 'POST',
         headers: {
@@ -192,13 +196,9 @@ export class ServerClient {
   /**
    * Creates a new debug connection to your CLI server via WebSockets
    */
-  async debug() {
+  async debug(serverName: string) {
     try {
-      if (!this.config.IS_LOCAL_SERVER) {
-        this.#extractAndValidateServerUrl();
-      } else {
-        this.serverUrl = this.config.SERVER_URL as string;
-      }
+      this.#extractAndValidateServerUrl(serverName);
       // pattern to be able to resolve/reject promise from one point of the application
       // while awaiting the promise from the other part of the application
       const promise: Promise<{ code: number; reason: string }> = new Promise(
@@ -420,13 +420,13 @@ export class ServerClient {
     const serverData = await response.json();
     if (response.status < 400) {
       logMessage(
-        'Successfully uploaded package and created server',
+        'Successfully uploaded package' + update ? 'and updated server' : '',
         serverData,
       );
       return serverData;
     } else {
       logMessage(
-        'failed to upload package file and recreate server',
+        'failed to upload package file' + update ? 'and updated server' : '',
         serverData,
       );
       throw Error(
@@ -440,7 +440,6 @@ export class ServerClient {
    */
   async list(): Promise<CloudServer[]> {
     try {
-      this.#extractAndValidateServerUrl();
       const response = await fetch(`${this.config.COMMANDER_URL}/api/servers`, {
         method: 'GET',
         headers: {
@@ -466,10 +465,9 @@ export class ServerClient {
    */
   async get({ serverName }: { serverName: string }): Promise<CloudServer> {
     try {
-      this.#extractAndValidateServerUrl();
       const response = await fetch(
         `${this.config.COMMANDER_URL}/api/servers/${
-          serverName || this.serverName
+          serverName
         }`,
         {
           method: 'GET',
@@ -498,10 +496,9 @@ export class ServerClient {
    */
   async delete(serverName?: string) {
     try {
-      this.#extractAndValidateServerUrl();
       const response = await fetch(
         `${this.config.COMMANDER_URL}/api/servers/${
-          serverName || this.serverName
+          serverName
         }`,
         {
           method: 'DELETE',
@@ -585,15 +582,18 @@ export class ServerClient {
     });
     const createData = await createServerResult.json();
     if (createServerResult.status < 400) {
+
       logMessage('Created a new server', createData);
+
+      if (!isDevelop) {
+        this.serverName = serverName;
+        await this.#validateDeployment();
+        await this.#testDeployment();
+      }
       return createData;
     } else {
       logMessage('Create server error', createData);
       throw new Error('Failed to create a new server');
-    }
-    if (!isDevelop) {
-      await this.#validateDeployment();
-      await this.#testDeployment();
     }
 
   }
@@ -603,9 +603,9 @@ export class ServerClient {
    * project files, uploading them to the cloud, then validation and
    * testing the deployment. Returns null on success, else throws.
    */
-  async update() {
+  async update(serverName: string) {
     try {
-      this.#extractAndValidateServerUrl();
+      this.#extractAndValidateServerUrl(serverName);
       await this.#packFiles();
       await this.#uploadPackageAndServer({ update: true });
       await this.#validateDeployment();
