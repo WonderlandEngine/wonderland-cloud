@@ -17,10 +17,6 @@ const parseArgsConfig: ParseArgsConfig = {
       type: 'string',
       default: process.env.WORK_DIR || process.cwd(),
     },
-    serverUrl: {
-      type: 'string',
-      default: process.env.SERVER_URL,
-    },
     authJsonLocation: {
       type: 'string',
       default:
@@ -97,7 +93,6 @@ config();
 export interface CliClientArgs {
   authToken: string;
   workDir: string;
-  serverUrl: string;
   authJsonLocation: string;
   isLocalServer?: boolean;
   config: string;
@@ -119,7 +114,6 @@ const args = values as unknown as CliClientArgs;
 export interface CloudConfig {
   WLE_CREDENTIALS: string;
   WORK_DIR: string;
-  SERVER_URL: string;
   IS_LOCAL_SERVER: boolean;
   PAGE_CONFIG_LOCATION: string;
   PAGE_ACCESS: string;
@@ -135,7 +129,6 @@ export interface CloudConfig {
 const cliConfig: Partial<CloudConfig> = {
   WLE_CREDENTIALS: args.authToken,
   WORK_DIR: args.workDir,
-  SERVER_URL: args.serverUrl,
   IS_LOCAL_SERVER: args.isLocalServer,
   PAGE_CONFIG_LOCATION: args.config,
   PAGE_ACCESS: args.access,
@@ -183,38 +176,4 @@ export const getAndValidateAuthToken = (
   }
   return cloudConfig.WLE_CREDENTIALS as string;
 };
-
-export const validateServerUrl = (
-  cloudConfig: Partial<CloudConfig>,
-): string => {
-  assert.ok(
-    cloudConfig.SERVER_URL,
-    'Missing SERVER_URL, please either set via cmd arg --serverUrl="YOUR_SERVER_URL" or via SERVER_URL env var',
-  );
-
-  if (!cloudConfig.IS_LOCAL_SERVER) {
-    const serverUrlParts = cloudConfig.SERVER_URL.split('/');
-    const protocol = serverUrlParts[0];
-    const domain = serverUrlParts[2];
-    const serverPath = serverUrlParts[3];
-    const serverPathEnding = serverPath.substring(serverPath.length - 8);
-    assert.match(
-      protocol,
-      /https/,
-      `Provided server url protocol is not https, but ${protocol}`,
-    );
-    assert.match(
-      domain,
-      /server.wonderland.dev/,
-      `Provided server domain is not 'server.wonderland.dev', please make sure to se the CLI url from the server settings page of your server`,
-    );
-    assert.match(
-      serverPathEnding,
-      /-develop/,
-      `Provided server path is not ending with '-develop', please make sure to se the CLI url from the server settings page of your server`,
-    );
-  }
-  return cloudConfig.SERVER_URL;
-};
-
 export default cliConfig as CloudConfig;
