@@ -22,7 +22,8 @@ export enum SERVERS_COMMANDS {
   UPDATE = 'update',
   DELETE = 'delete',
   DEBUG = 'debug',
-  GET = 'get'
+  GET = 'get',
+  START = 'start'
 }
 
 

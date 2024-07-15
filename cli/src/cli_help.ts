@@ -11,8 +11,7 @@ const helpMapping: {
   };
 } = {};
 
-const serverArguments = `Required arguments: 
-  --serverUrl (your servers cli url)
+const serverArguments = `
 Optional arguments: 
   --workDir (alternative work directory)
   --authToken (your wl-api auth token)
@@ -23,19 +22,26 @@ helpMapping[CLI_RESOURCES.PAGE] = {};
 
 helpMapping[CLI_RESOURCES.SERVER][
   SERVERS_COMMANDS.UPDATE
-] = `Update your production server with a a new package file. It will pack the 
+] = `wl-cloud server update my-new-server-name .Update your production server with a a new package file. It will pack the 
 files in the current work folder and upload them to the cloud, replacing your 
 current server deployment and performing automated validation of the new server
 deployment. Please note that this will cause a downtime of your server.
+If the server is a develop server, this action will fail.
  ${serverArguments}
 `;
 helpMapping[CLI_RESOURCES.SERVER][
   SERVERS_COMMANDS.CREATE
-] = `This command is currently not implemented yet. Please use the website to 
-create a new server deployment`;
+] = `example usage wl-cloud server create my-new-server.
+Creates a new server, please note that we will take the first available 
+subscription for creating this server. Available flags:
+--develop if you want to have a develop server for CLI
+--hrtf if you want to have spatial audio mixing
+ ${serverArguments}`;
+
 helpMapping[CLI_RESOURCES.SERVER][
   SERVERS_COMMANDS.DEBUG
-] = `Connect to your CLI server and debug your server code live. This command will
+] = `example usage wl-cloud server debug my-new-server.
+Connect to your CLI server and debug your server code live. This command will
 pickup any code changes in the current work directory, repackage your server
 package and then push the code to the CLI server, also triggering a restart and a 
 window reload on clients connected via the browser. Also, each console.log call

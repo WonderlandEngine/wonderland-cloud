@@ -267,6 +267,9 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             server,
           );
           break;
+        case SERVERS_COMMANDS.START:
+          await client.server?.start(serverName);
+          break;
         case SERVERS_COMMANDS.DELETE:
           await client.server?.delete(serverName);
           break;

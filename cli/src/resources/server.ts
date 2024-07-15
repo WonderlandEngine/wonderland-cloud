@@ -1,5 +1,5 @@
 import { asyncTimeout, debugMessage, logMessage } from '../utils';
-import { getAndValidateAuthToken, validateServerUrl } from '../cli_config';
+import { getAndValidateAuthToken } from '../cli_config';
 import ws from 'ws';
 import process from 'process';
 import fs from 'fs';
@@ -7,6 +7,7 @@ import { exec } from 'child_process';
 import path from 'path';
 import { merge } from 'lodash';
 import { SUBSCRIPTION_TYPE, SubscriptionClient } from './subscriptions';
+import { EventEmitter } from 'events';
 
 export interface ServerConfig {
   WORK_DIR: string;
@@ -46,7 +47,7 @@ export interface CloudServer {
   host: string;
 }
 
-export class ServerClient {
+export class ServerClient extends EventEmitter {
   wsClient?: ws;
   fileChangePromise?: Promise<any>;
   authToken: string;
@@ -67,6 +68,7 @@ export class ServerClient {
   subscriptionClient: SubscriptionClient;
 
   constructor(cloudConfig: Partial<ServerConfig>) {
+    super();
     const mergedConfig = merge({}, defaultConfig, cloudConfig);
     this.config = mergedConfig;
     this.authToken = getAndValidateAuthToken(mergedConfig);
@@ -98,15 +100,6 @@ export class ServerClient {
     }
   }
 
-  /**
-   * Extracts the server name from the develop URL.
-   * Develop urls are always the pattern https://<domain>/<server-name>-develop
-   * @param serverUrl {string} develop server url
-   */
-  extractServerName(serverUrl: string) {
-    return serverUrl.split('/').pop()?.slice(0, -8) as string;
-  }
-
   #handleWsMessage(message: string) {
     try {
       const jsonMessage = JSON.parse(message);
@@ -123,6 +116,7 @@ export class ServerClient {
       /* empty */
     }
     logMessage(message.toString());
+    this.emit('debug-message', { message })
   }
 
   #waitForWSClientOpen(attempt = 0, maxAttempts = 6) {
@@ -172,6 +166,7 @@ export class ServerClient {
       },
     );
     if (response.status === 200) {
+      logMessage('Server started!');
       return true;
     } else if (response.status === 201) {
       logMessage('Server scheduled for start');
@@ -227,7 +222,7 @@ export class ServerClient {
       } else {
         this.wsUrl = this.config.SERVER_URL?.replace('http', 'ws') as string;
       }
-      logMessage('Waiting for server to be up and running...');
+      logMessage('Waiting for server to be up and running...', this.wsUrl);
       await this.#waitForWSClientOpen();
       logMessage('Server is reachable, establishing debug connection.');
       this.#createWsClient();
@@ -242,7 +237,7 @@ export class ServerClient {
     const urlParts = url.split('/');
     urlParts[0] = 'wss:';
     urlParts[2] = urlParts[2] + ':443';
-    return urlParts.join('/');
+    return `${urlParts.join('/')}-develop`;
   }
 
   #createWsClient(maxAttempts = 5, attempt = 0) {
@@ -549,20 +544,25 @@ export class ServerClient {
       throw new Error('could not find a valid subscription for creating a new server');
     }
 
+    let packageName;
     if (!isDevelop) {
       // TODO check if this applies to create a server
       await this.#packFiles();
+
+      const { packageName: packageN} = await this.#uploadPackageAndServer({ update: false, serverName });
+      console.log({
+        name: serverName,
+        packageName,
+        fileName: this.packedPackageName,
+        cli: isDevelop,
+        hrtfAudio: hrtfEnabled,
+        subscriptionId: validSubExists.id,
+      });
+      packageName = packageN;
     }
 
-    const { packageName } = await this.#uploadPackageAndServer({ update: false, serverName });
-    console.log({
-      name: serverName,
-      packageName,
-      fileName: this.packedPackageName,
-      cli: isDevelop,
-      hrtfAudio: hrtfEnabled,
-      subscriptionId: validSubExists.id,
-    });
+
+
     const createServerResult = await fetch(this.config.COMMANDER_URL + '/api/servers', {
       method: 'POST', // *GET, POST, PUT, DELETE, etc.
       redirect: 'follow', // manual, *follow, error
@@ -603,6 +603,21 @@ export class ServerClient {
    * project files, uploading them to the cloud, then validation and
    * testing the deployment. Returns null on success, else throws.
    */
+  async start(serverName: string) {
+    try {
+      this.#extractAndValidateServerUrl(serverName);
+      await this.#sendStartServerSignal();
+    } catch (error) {
+      logMessage('Failed to start server', (error as Error).cause || (error as Error).message);
+      throw error;
+    }
+  }
+
+  /**
+   * Updates the server from the current config by packaging the current
+   * project files, uploading them to the cloud, then validation and
+   * testing the deployment. Returns null on success, else throws.
+   */
   async update(serverName: string) {
     try {
       this.#extractAndValidateServerUrl(serverName);
@@ -628,7 +643,7 @@ export class ServerClient {
     formData.append('packageName', this.customPackageJson.name);
     formData.append('id', this.connectionId);
 
-    fetch(`${this.serverUrl}/cli-upload`, {
+    fetch(`${this.serverUrl}-develop/cli-upload`, {
       method: 'POST',
       body: formData,
 
