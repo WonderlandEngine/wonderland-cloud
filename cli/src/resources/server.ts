@@ -92,10 +92,13 @@ export class ServerClient extends EventEmitter {
       // example commander URL is https://staging.cloud.wonderland.dev
       // so we need to split by // and insert the server subdomain before first element of domain
       const parts = this.config.COMMANDER_URL?.split('/') as string[];
-      // last part contains the domain start so let's prepent server to it
+      // last part contains the domain start so let's prepend server to it
       parts[2] = `server.${parts[2]}`;
       parts.push(serverName);
       this.serverUrl = parts.join('/');
+      if (!this.serverUrl.includes('staging.')) {
+        this.serverUrl = this.serverUrl.replace('cloud.', '');
+      }
       this.serverName = serverName;
     }
   }
@@ -116,7 +119,7 @@ export class ServerClient extends EventEmitter {
       /* empty */
     }
     logMessage(message.toString());
-    this.emit('debug-message', { message })
+    this.emit('debug-message', { message });
   }
 
   #waitForWSClientOpen(attempt = 0, maxAttempts = 6) {
@@ -549,7 +552,7 @@ export class ServerClient extends EventEmitter {
       // TODO check if this applies to create a server
       await this.#packFiles();
 
-      const { packageName: packageN} = await this.#uploadPackageAndServer({ update: false, serverName });
+      const { packageName: packageN } = await this.#uploadPackageAndServer({ update: false, serverName });
       console.log({
         name: serverName,
         packageName,
@@ -560,7 +563,6 @@ export class ServerClient extends EventEmitter {
       });
       packageName = packageN;
     }
-
 
 
     const createServerResult = await fetch(this.config.COMMANDER_URL + '/api/servers', {
