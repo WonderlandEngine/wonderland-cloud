@@ -76,6 +76,9 @@ export class SubscriptionClient {
     this.authToken = getAndValidateAuthToken(mergedConfig);
   }
 
+  /**
+   * Lists your current subscriptions and subscriptions shared with you via teams
+   */
   async list(): Promise<SubscriptionFe[]> {
     logMessage(
       'Listing subscriptions...',
