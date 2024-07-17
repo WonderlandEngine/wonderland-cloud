@@ -1,11 +1,7 @@
 #!/usr/bin/env node
 import { CloudClient } from './lib';
-import cliConfig, {
-  CloudConfig,
-  getAndValidateAuthToken,
-  positionals,
-} from './cli_config';
-import { logMessage, debugMessage } from './utils';
+import cliConfig, { CloudConfig, getAndValidateAuthToken, positionals } from './cli_config';
+import { debugMessage, logMessage } from './utils';
 import path from 'path';
 import process from 'process';
 import fs from 'fs';
@@ -13,14 +9,10 @@ import { Page, UploadPageResponse } from './resources/page';
 import readline from 'readline';
 import { rm } from 'node:fs/promises';
 import { CloudServer } from './resources/server';
-import {
-  CLI_RESOURCES,
-  PAGES_COMMANDS,
-  SERVERS_COMMANDS,
-  COMMAND_ENUMS,
-} from './constants';
+import { CLI_RESOURCES, COMMAND_ENUMS, PAGES_COMMANDS, SERVERS_COMMANDS, SUBSCRIPTION_COMMAND } from './constants';
 
 import helpDictionary from './cli_help';
+import { SUBSCRIPTION_TYPE_STRING_MAPPING } from './resources/subscriptions';
 
 const readLineInterface = readline.createInterface({
   input: process.stdin,
@@ -186,6 +178,8 @@ const validateAndGetUpdateArgs = (
       } else {
         projectConfig.isPublic = projectConfig.accessType === 'public';
       }
+      // update withThreads if changed
+      projectConfig.withThreads = !config.PAGE_NO_THREADS;
       logMessage('Found deployment config to use', projectConfig);
       return projectConfig;
     }
@@ -240,20 +234,48 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
 
   switch (resource) {
     case CLI_RESOURCES.SERVER:
+      const [serverName] = commandArguments;
+
+      if (!serverName) {
+        throw new Error('Please provide a valid server name');
+      }
+      if (!serverName.match(
+        /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/gm,
+      )) {
+        throw new Error('Name can only contain numbers and lowercase characters');
+      }
       switch (commandVerb) {
-        case SERVERS_COMMANDS.CREATE:
-          // todo add create via CLI and library
+        case SERVERS_COMMANDS.GET:
+          const loadedServer = await client.server?.get({
+            serverName,
+          });
           logMessage(
-            'Sorry, this command is currently under development \n',
-            'In the meantime you can use the UI to create a new server deployment https://cloud.wonderlandengine.dev/create-server',
+            'Loaded server', loadedServer,
           );
           break;
+        case SERVERS_COMMANDS.CREATE:
+          logMessage(
+            'Creating a new server...', serverName,
+          );
+          const server = await client.server?.create({
+            serverName,
+            hrtfEnabled: cliConfig.HRTF,
+            isDevelop: cliConfig.DEVELOP,
+          });
+          logMessage(
+            'Created new server',
+            server,
+          );
+          break;
+        case SERVERS_COMMANDS.START:
+          await client.server?.start(serverName);
+          break;
         case SERVERS_COMMANDS.DELETE:
-          await client.server?.delete();
+          await client.server?.delete(serverName);
           break;
         case SERVERS_COMMANDS.DEBUG:
           try {
-            const result = await client.server?.debug();
+            const result = await client.server?.debug(serverName);
             logMessage('WS connection closed with', result);
           } catch (err) {
             logMessage('WS connection failed:', err);
@@ -273,7 +295,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           );
           break;
         case SERVERS_COMMANDS.UPDATE:
-          await client.server?.update();
+          await client.server?.update(serverName);
           break;
       }
       break;
@@ -318,7 +340,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             cliConfig,
           );
 
-          await new Promise((resolve) => {
+          const toDelete = cliConfig.FORCE || await new Promise((resolve) => {
             readLineInterface.question(
               'Are you sure that you want to delete the project with the full name ' +
               deleteProjectSettings.projectName +
@@ -328,17 +350,22 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
                   deleteProjectSettings.projectName !==
                   projectName.replace(/(\r\n|\n|\r)/gm, '')
                 ) {
-                  console.log(projectName);
-                  console.log('Project name mismatch, exiting');
-                  process.exit(1);
+                  return resolve(false);
                 } else {
-                  await client.page?.delete(deleteProjectSettings.projectName);
-                  await deleteDeploymentConfig(cliConfig);
-                  return resolve({});
+                  return resolve(true);
                 }
               },
             );
           });
+
+          if (!toDelete) {
+            console.log(deleteProjectSettings.projectName);
+            console.log('Project name mismatch, exiting');
+            process.exit(1);
+          }
+
+          await client.page?.delete(deleteProjectSettings.projectName);
+          await deleteDeploymentConfig(cliConfig);
 
           logMessage(
             `Successfully deleted domain and files for ${deleteProjectSettings.projectName}`,
@@ -373,6 +400,22 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           break;
       }
       break;
+    case CLI_RESOURCES.SUBSCRIPTION:
+      switch (commandVerb) {
+        case SUBSCRIPTION_COMMAND.LIST:
+
+          const subs = await client.subscription?.list();
+          const foundSubs = subs?.map(sub => ({
+            ...sub,
+            type: SUBSCRIPTION_TYPE_STRING_MAPPING[sub.type],
+          }));
+          logMessage(
+            'Found subscriptions:',
+            foundSubs,
+          );
+          break;
+      }
+      break;
   }
   process.exit(0);
 };
@@ -384,7 +427,8 @@ const evalCommandWrapped = async (promise: Promise<void>) => {
     await promise;
   } catch (error) {
     logMessage('Error:', (error as Error).message);
-    process.exit(1);
+    await new Promise(resolve => setTimeout(resolve, 400));
+    throw error;
   }
 };
 

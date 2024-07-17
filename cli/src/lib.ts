@@ -7,12 +7,12 @@ import { debugMessage, logMessage } from './utils';
 import { PageClient } from './resources/page';
 import { ServerClient } from './resources/server';
 import { CLI_RESOURCES } from './constants';
+import { SubscriptionClient } from './resources/subscriptions';
 
 dotenvConfig();
 
 const defaultConfig: Partial<CloudConfig> = {
   WORK_DIR: process.env.WORK_DIR || process.cwd(),
-  SERVER_URL: process.env.SERVER_URL,
   COMMANDER_URL: process.env.COMMANDER_URL || 'https://cloud.wonderland.dev',
   IS_LOCAL_SERVER: process.env.IS_LOCAL_SERVER === 'true',
   PAGE_CONFIG_LOCATION: process.env.PAGE_CONFIG_LOCATION,
@@ -36,6 +36,7 @@ export class CloudClient {
   config: Partial<CloudConfig>;
   page?: PageClient;
   server?: ServerClient;
+  subscription?: SubscriptionClient;
   authToken: string;
 
   constructor(cloudConfig: Partial<CloudConfig>, enabledResource?: CLI_RESOURCES) {
@@ -50,6 +51,9 @@ export class CloudClient {
           break;
         case CLI_RESOURCES.PAGE:
           this.page = new PageClient(this.config);
+          break;
+        case CLI_RESOURCES.SUBSCRIPTION:
+          this.subscription = new SubscriptionClient(this.config);
           break;
         default:
           logMessage('unknown resource provided', enabledResource);

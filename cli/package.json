@@ -14,10 +14,11 @@
     "dist",
     "README.md"
   ],
+  "repository": "https://github.com/WonderlandEngine/wonderland-cloud/cli",
   "author": "Wonderland GmbH",
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && chmod +x ./dist/src/cli_client.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint --ext=.ts ./src ./test",
     "lint:fix": "eslint --ext=.ts ./src ./test --fix",

@@ -11,7 +11,6 @@ wl-cloud [resource] [command] ... [--help | -h]
 The following resources are available:
 - server
 - project
-
 ...
 ```
 
@@ -22,7 +21,7 @@ Here are some common examples on how to use the CLI tool:
 #### Multi User Server Debugging
 
 ```sh
-wl-cloud server debug --serverUrl "<debug-url>"
+wl-cloud server debug <your-server-name>
 ```
 
 This command will connect to your custom server via web sockets and
@@ -45,7 +44,7 @@ The `wl-cloud` command will automatically find it and authenticate.
 ## Multi User Server Update
 
 ```
-wl-cloud server update --serverUrl "<production-url>"
+wl-cloud server update <your-server-name>
 ```
 
 This command will pack and upload the local server project and deploy it
