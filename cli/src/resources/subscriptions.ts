@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-shadow
-import { merge } from 'lodash';
+import merge from 'lodash.merge';
 import { getAndValidateAuthToken } from '../cli_config';
 import path from 'path';
 import process from 'process';
