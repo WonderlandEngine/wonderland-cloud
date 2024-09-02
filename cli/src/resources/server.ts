@@ -5,7 +5,7 @@ import process from 'process';
 import fs from 'fs';
 import { exec } from 'child_process';
 import path from 'path';
-import { merge } from 'lodash';
+import merge from 'lodash.merge';
 import { SUBSCRIPTION_TYPE, SubscriptionClient } from './subscriptions';
 import { EventEmitter } from 'events';
 

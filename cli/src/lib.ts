@@ -2,7 +2,7 @@ import path from 'path';
 import { CloudConfig, getAndValidateAuthToken } from './cli_config';
 import { config as dotenvConfig } from 'dotenv';
 import process from 'process';
-import { merge } from 'lodash';
+import merge from 'lodash.merge';
 import { debugMessage, logMessage } from './utils';
 import { PageClient } from './resources/page';
 import { ServerClient } from './resources/server';
