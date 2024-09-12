@@ -184,6 +184,29 @@ export class WonderlandClient {
         this.outputDeviceId = deviceId;
       }
     };
+
+    //@ts-ignore
+    window.wonderlandGetGainNodeValue = () => {
+      if(this.gainNode){
+        return this.gainNode.gain;
+      }
+      return {
+        defaultValue: 1,
+        maxValue: 3.4028234663852886e+38,
+        minValue: -3.4028234663852886e+38,
+        value: 1
+      }
+    }
+
+    //@ts-ignore
+    window.wonderlandSetGainNodeValue = (gain) => {
+      if(this.gainNode && this.incomingRemoteGainNode && this.context){
+        this.gainNode.gain.setValueAtTime(gain, this.context.currentTime) ;
+        this.incomingRemoteGainNode.gain.setValueAtTime(gain, this.context.currentTime);
+      }
+      console.error('could not change gain, no gainNode or context exists yet')
+    }
+
   }
 
   bindOnWindowCloseEvent(): void {
