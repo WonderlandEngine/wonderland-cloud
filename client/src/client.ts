@@ -76,6 +76,7 @@ export class WonderlandClient {
   path: string;
   secure: boolean;
   inputDeviceId?: string;
+  outputDeviceId?: string;
   audio: boolean;
   remoteMedia?: HTMLElement | null;
   receivedData: any[];
@@ -130,6 +131,59 @@ export class WonderlandClient {
       ],
     });
     this.bindOnWindowCloseEvent();
+    this.createInputOutputControls();
+  }
+
+  createInputOutputControls(): void{
+    //@ts-ignore
+    window.wonderlandChangeInputDevice = (deviceId) => {
+
+      if (this.peerConnection.connectionState === "connected") {
+        this._debugLog("already connected, replace track");
+        const newConstraints = {
+          audio: { deviceId },
+          sampleSize: { exact: 16 },
+          channelCount: { exact: 1 },
+          /* Echo cancellation absolutely destroys everything in Chrome */
+          echoCancellation: false
+        };
+
+        navigator.mediaDevices.getUserMedia(newConstraints).then((stream) => {
+          this._debugLog("got stream for device", deviceId, stream);
+          const audioTrack = stream.getTracks()[0];
+
+          const audioSender = this.peerConnection.getSenders().find(function(s) {
+            return s.track?.kind == audioTrack.kind;
+          });
+
+          if(audioSender){
+            this._debugLog("got audio sender for track replace");
+            audioSender.replaceTrack(audioTrack);
+          }
+
+
+        });
+      } else {
+        this._debugLog("not connected yet, change the deviceId value of instance");
+        this.inputDeviceId = deviceId;
+      }
+
+
+    };
+    //@ts-ignore
+    window.wonderlandChangeOutputDevice = (deviceId) => {
+      if (this.context) {
+        this._debugLog("already got audio context, replace sink with ", deviceId);
+        //@ts-ignore
+        if(this.context.setSinkId){
+          //@ts-ignore
+          this.context.setSinkId(deviceId);
+        }
+      } else {
+        this._debugLog("not connetced yet ", deviceId);
+        this.outputDeviceId = deviceId;
+      }
+    };
   }
 
   bindOnWindowCloseEvent(): void {
@@ -618,10 +672,10 @@ export class WonderlandClient {
   }
 
   sendViaWsInternal({
-    name,
-    data = {},
-    custom,
-  }: {
+                      name,
+                      data = {},
+                      custom,
+                    }: {
     name: WSMessageName;
     data?: any;
     custom?: any;
