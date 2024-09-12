@@ -78,7 +78,6 @@ export class WonderlandClient {
   inputDeviceId?: string;
   outputDeviceId?: string;
   audio: boolean;
-  remoteMedia?: HTMLElement | null;
   receivedData: any[];
   incomingRemoteStreams?: number;
   context?: AudioContext;
@@ -119,8 +118,6 @@ export class WonderlandClient {
     this._debugLog('client created with options:', mergedOptions);
     // TODO DO NOT MIX AUDIO IF NOT ENABLED ON CLIENT
     if (this.audio) {
-      this.remoteMedia = document.getElementById('remoteMedia');
-      this.waitForAudioContext();
     }
     this.receivedData = [];
     this.peerConnection = new RTCPeerConnection({
@@ -343,7 +340,7 @@ export class WonderlandClient {
     if (this.audioAdded) return;
     if (!this.audioAddingPromise) {
       this.audioAddingPromise = new Promise(async (resolve) => {
-        await this.waitForAudioContext();
+
         const media = await navigator.mediaDevices.getUserMedia({
           audio: {
             deviceId: this.inputDeviceId || void 0,
