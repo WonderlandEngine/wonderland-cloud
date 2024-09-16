@@ -84,6 +84,7 @@ export class WonderlandClient {
   incomingRemoteGainNode?: GainNode;
   getAudioContextPromise?: Promise<AudioContext>;
   remoteStream?: MediaStream;
+  audioNode?: HTMLAudioElement;
   gainNode?: GainNode;
   ws?: WebSocket;
   pingInterval?: number;
@@ -115,6 +116,7 @@ export class WonderlandClient {
 
     this.audio = mergedOptions.audio ?? true;
 
+
     this._debugLog('client created with options:', mergedOptions);
     // TODO DO NOT MIX AUDIO IF NOT ENABLED ON CLIENT
     if (this.audio) {
@@ -131,37 +133,37 @@ export class WonderlandClient {
     this.createInputOutputControls();
   }
 
-  createInputOutputControls(): void{
+  createInputOutputControls(): void {
     //@ts-ignore
     window.wonderlandChangeInputDevice = (deviceId) => {
 
-      if (this.peerConnection.connectionState === "connected") {
-        this._debugLog("already connected, replace track");
+      if (this.peerConnection.connectionState === 'connected') {
+        this._debugLog('already connected, replace track');
         const newConstraints = {
           audio: { deviceId },
           sampleSize: { exact: 16 },
           channelCount: { exact: 1 },
           /* Echo cancellation absolutely destroys everything in Chrome */
-          echoCancellation: false
+          echoCancellation: false,
         };
 
         navigator.mediaDevices.getUserMedia(newConstraints).then((stream) => {
-          this._debugLog("got stream for device", deviceId, stream);
+          this._debugLog('got stream for device', deviceId, stream);
           const audioTrack = stream.getTracks()[0];
 
           const audioSender = this.peerConnection.getSenders().find(function(s) {
             return s.track?.kind == audioTrack.kind;
           });
 
-          if(audioSender){
-            this._debugLog("got audio sender for track replace");
+          if (audioSender) {
+            this._debugLog('got audio sender for track replace');
             audioSender.replaceTrack(audioTrack);
           }
 
 
         });
       } else {
-        this._debugLog("not connected yet, change the deviceId value of instance");
+        this._debugLog('not connected yet, change the deviceId value of instance');
         this.inputDeviceId = deviceId;
       }
 
@@ -170,39 +172,43 @@ export class WonderlandClient {
     //@ts-ignore
     window.wonderlandChangeOutputDevice = (deviceId) => {
       if (this.context) {
-        this._debugLog("already got audio context, replace sink with ", deviceId);
+        this._debugLog('already got audio context, replace sink with ', deviceId);
         //@ts-ignore
-        if(this.context.setSinkId){
+        if (this.context.setSinkId) {
           //@ts-ignore
           this.context.setSinkId(deviceId);
         }
+        //@ts-ignore
+      } else if (this.audioNode && this.audioNode.setSinkId) {
+        //@ts-ignore
+        this.audioNode.setSinkId(deviceId);
       } else {
-        this._debugLog("not connetced yet ", deviceId);
+        this._debugLog('not connetced yet ', deviceId);
         this.outputDeviceId = deviceId;
       }
     };
 
     //@ts-ignore
     window.wonderlandGetGainNodeValue = () => {
-      if(this.gainNode){
+      if (this.gainNode) {
         return this.gainNode.gain;
       }
       return {
         defaultValue: 1,
         maxValue: 3.4028234663852886e+38,
         minValue: -3.4028234663852886e+38,
-        value: 1
-      }
-    }
+        value: 1,
+      };
+    };
 
     //@ts-ignore
     window.wonderlandSetGainNodeValue = (gain) => {
-      if(this.gainNode && this.incomingRemoteGainNode && this.context){
-        this.gainNode.gain.setValueAtTime(gain, this.context.currentTime) ;
+      if (this.gainNode && this.incomingRemoteGainNode && this.context) {
+        this.gainNode.gain.setValueAtTime(gain, this.context.currentTime);
         this.incomingRemoteGainNode.gain.setValueAtTime(gain, this.context.currentTime);
       }
-      console.error('could not change gain, no gainNode or context exists yet')
-    }
+      console.error('could not change gain, no gainNode or context exists yet');
+    };
 
   }
 
@@ -249,9 +255,7 @@ export class WonderlandClient {
           this.incomingRemoteGainNode = this.context.createGain();
 
           this.incomingRemoteGainNode.connect(this.context.destination);
-          if (this.context) {
-            this.context.resume();
-          }
+          this.context.resume();
         }
         if (this.context && this.context.state === 'suspended') {
           this.context.resume();
@@ -260,6 +264,12 @@ export class WonderlandClient {
           }
           throw new Error('audio context not active');
         } else {
+          setInterval(() => {
+            // periodically check if context is supspended and resume it
+            if (this.context && this.context.state === 'suspended') {
+              this.context.resume();
+            }
+          }, 5000);
           resolve(this.context);
         }
       } catch (err) {
@@ -298,14 +308,20 @@ export class WonderlandClient {
     // See https://stackoverflow.com/questions/24287054/chrome-wont-play-webaudio-getusermedia-via-webrtc-peer-js
     // and https://bugs.chromium.org/p/chromium/issues/detail?id=121673#c121
     this.remoteStream = stream;
-    let audioElem: HTMLAudioElement | null = new Audio();
-    audioElem.controls = true;
-    audioElem.muted = true;
-    audioElem.srcObject = this.remoteStream;
-    audioElem.addEventListener('canplaythrough', () => {
-      (audioElem as HTMLAudioElement).pause();
-      audioElem = null;
-    });
+
+      let audioElem: HTMLAudioElement | null = new Audio();
+      audioElem.controls = true;
+      audioElem.muted = true;
+      audioElem.srcObject = this.remoteStream;
+
+
+      audioElem.addEventListener('canplaythrough', () => {
+        (audioElem as HTMLAudioElement).pause();
+        audioElem = null;
+      });
+
+
+
     if (this.context && this.incomingRemoteGainNode) {
       // Gain node for this stream only
       // Connected to gain node for all remote streams
@@ -316,6 +332,8 @@ export class WonderlandClient {
       audioNode.connect(gainNode);
 
       this._debugLog('added stream to audio context');
+    } else {
+
     }
   }
 
@@ -340,6 +358,11 @@ export class WonderlandClient {
     if (this.audioAdded) return;
     if (!this.audioAddingPromise) {
       this.audioAddingPromise = new Promise(async (resolve) => {
+        // @ts-ignore
+        if(navigator.audioSession){
+          // @ts-ignore
+          navigator.audioSession.type = "play-and-record"
+        }
 
         const media = await navigator.mediaDevices.getUserMedia({
           audio: {
@@ -353,6 +376,13 @@ export class WonderlandClient {
         media.getTracks().forEach((track) => {
           this.peerConnection.addTrack(track, media);
         });
+        // @ts-ignore
+        if(navigator.audioSession){
+          // @ts-ignore
+          navigator.audioSession.type = "playback"
+        }
+
+        await this.waitForAudioContext();
         this.audioAdded = true;
         this._debugLog('added own media tracks');
         resolve();
@@ -497,7 +527,7 @@ export class WonderlandClient {
                     .addIceCandidate(msg.data.candidate)
                     .then((val) => this._debugLog('added ice candidate', val))
                     .catch((err) =>
-                      this._debugLog('could not add candidate', err)
+                      this._debugLog('could not add candidate', err),
                     );
                 } else {
                   this.candidates.push(msg.data.candidate);
@@ -531,7 +561,7 @@ export class WonderlandClient {
                 this.eventQueue.push(parsedEvent);
               } else {
                 console.error(
-                  'received custom event without custom data! cannot be'
+                  'received custom event without custom data! cannot be',
                 );
               }
               break;
@@ -539,7 +569,7 @@ export class WonderlandClient {
               console.error('RECEIVED UNKNOWN EVENT!!', msgEvt);
               break;
           }
-        }).bind(this)
+        }).bind(this),
       );
     });
   }
@@ -601,7 +631,7 @@ export class WonderlandClient {
         'ice gathering change',
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         //@ts-ignore
-        event.target.iceGatheringState
+        event.target.iceGatheringState,
       );
     };
     this.peerConnection.onicecandidate = (event) => {
@@ -618,7 +648,7 @@ export class WonderlandClient {
     this.peerConnection.onsignalingstatechange = () => {
       this._debugLog(
         'received signalling state change event',
-        this.peerConnection.signalingState
+        this.peerConnection.signalingState,
       );
       if (
         this.peerConnection.signalingState === 'have-remote-offer' ||
@@ -636,7 +666,6 @@ export class WonderlandClient {
     this.peerConnection.ontrack = async (track) => {
       if (!this.audio) return;
       this._debugLog('received track', track);
-      await this.waitForAudioContext();
       this.gotRemoteMediaStream(track);
     };
     this.peerConnection.onnegotiationneeded = async (event) => {
@@ -707,7 +736,7 @@ export class WonderlandClient {
         data,
         timestamp: Date.now(),
         custom_data: custom ? JSON.stringify(custom) : '',
-      })
+      }),
     );
   }
 
