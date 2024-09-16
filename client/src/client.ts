@@ -92,6 +92,7 @@ export class WonderlandClient {
   audioAdded: boolean = false;
   audioAddingPromise?: Promise<void>;
   skipServerStart: boolean = false;
+  isIOS = false;
 
   /**
    * Constructor
@@ -115,6 +116,8 @@ export class WonderlandClient {
     this.skipServerStart = mergedOptions.skipServerStart;
 
     this.audio = mergedOptions.audio ?? true;
+
+    this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
 
     this._debugLog('client created with options:', mergedOptions);
@@ -289,6 +292,9 @@ export class WonderlandClient {
    * @returns {Promise<unknown>}
    */
   async waitForAudioContext() {
+    if (this.isIOS) {
+      return;
+    }
     if (this.context && this.context.state === 'running') {
       return this.context;
     }
@@ -308,7 +314,12 @@ export class WonderlandClient {
     // See https://stackoverflow.com/questions/24287054/chrome-wont-play-webaudio-getusermedia-via-webrtc-peer-js
     // and https://bugs.chromium.org/p/chromium/issues/detail?id=121673#c121
     this.remoteStream = stream;
-
+    // @ts-ignore
+    if(navigator.audioSession){
+      // @ts-ignore
+      navigator.audioSession.type = "playback"
+    }
+    if (!this.isIOS) {
       let audioElem: HTMLAudioElement | null = new Audio();
       audioElem.controls = true;
       audioElem.muted = true;
@@ -319,10 +330,22 @@ export class WonderlandClient {
         (audioElem as HTMLAudioElement).pause();
         audioElem = null;
       });
+    } else {
+      const audioElement = document.createElement('audio');
+      audioElement.controls = true;
+      audioElement.muted = false;
+      audioElement.srcObject = this.remoteStream;
+      audioElement.addEventListener('canplaythrough', () => {
+        audioElement.play();
+        audioElement.muted = false;
+        audioElement.style.display = 'none';
+        document.body.appendChild(audioElement);
+        this.audioNode = audioElement;
+      });
+    }
 
 
-
-    if (this.context && this.incomingRemoteGainNode) {
+    if (!this.isIOS && this.context && this.incomingRemoteGainNode) {
       // Gain node for this stream only
       // Connected to gain node for all remote streams
       const gainNode = (this.gainNode = this.context.createGain());
@@ -376,11 +399,7 @@ export class WonderlandClient {
         media.getTracks().forEach((track) => {
           this.peerConnection.addTrack(track, media);
         });
-        // @ts-ignore
-        if(navigator.audioSession){
-          // @ts-ignore
-          navigator.audioSession.type = "playback"
-        }
+
 
         await this.waitForAudioContext();
         this.audioAdded = true;
