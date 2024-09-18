@@ -390,10 +390,9 @@ export class WonderlandClient {
         const media = await navigator.mediaDevices.getUserMedia({
           audio: {
             deviceId: this.inputDeviceId || void 0,
-            sampleSize: { exact: 16 },
-            channelCount: { exact: 1 },
             /* Echo cancellation absolutely destroys everything in Chrome */
             echoCancellation: false,
+            noiseSuppression: true
           },
         });
         media.getTracks().forEach((track) => {
