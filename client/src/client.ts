@@ -275,6 +275,13 @@ export class WonderlandClient {
           }, 5000);
           resolve(this.context);
         }
+        resolve(this.context);
+        setInterval(() => {
+          // periodically check if context is supspended and resume it
+          if (this.context && this.context.state === 'suspended') {
+            this.context.resume();
+          }
+        }, 5000);
       } catch (err) {
         // something failed, lets wait a few and then try again ...
         // try again..
@@ -382,18 +389,17 @@ export class WonderlandClient {
     if (!this.audioAddingPromise) {
       this.audioAddingPromise = new Promise(async (resolve) => {
         // @ts-ignore
-        if(navigator.audioSession){
+        if (navigator.audioSession) {
           // @ts-ignore
-          navigator.audioSession.type = "play-and-record"
+          navigator.audioSession.type = 'play-and-record';
         }
 
         const media = await navigator.mediaDevices.getUserMedia({
           audio: {
             deviceId: this.inputDeviceId || void 0,
-            sampleSize: { exact: 16 },
-            channelCount: { exact: 1 },
             /* Echo cancellation absolutely destroys everything in Chrome */
             echoCancellation: false,
+            noiseSuppression: true,
           },
         });
         media.getTracks().forEach((track) => {
@@ -511,9 +517,13 @@ export class WonderlandClient {
               const parsedSDP = parse(answer.sdp as string);
               parsedSDP.media.forEach((media) => {
                 if (media.type === 'audio') {
+
                   media.fmtp[0].config = media.fmtp[0].config
+                    // disable ForwardErrorCorrection as it reduces the sound quality
                     .replace('useinbandfec=1', 'useinbandfec=0')
+                    // set the packet size to 10ms per packet
                     .replace('minptime=0', 'minptime=10')
+                    // explicitly ask for a stereo input from the server
                     .concat(';stereo=1;ssprop-stereo=1');
                 }
               });
@@ -620,10 +630,14 @@ export class WonderlandClient {
     const parsedSDP = parse(offer.sdp as string);
     parsedSDP.media.forEach((media) => {
       if (media.type === 'audio') {
+
         media.fmtp[0].config = media.fmtp[0].config
+          // disable ForwardErrorCorrection as it reduces the sound quality
           .replace('useinbandfec=1', 'useinbandfec=0')
-          .replace('minptime=0', 'minptime=10')
-          .concat(';stereo=1;ssprop-stereo=1');
+          // set the packet size to 10ms per packet
+          .replace('minptime=0', 'minptime=20')
+          // explicitly offer a mono channel as an input to the server
+          .concat(';stereo=0;ssprop-stereo=0');
       }
     });
     offer.sdp = write(parsedSDP);
