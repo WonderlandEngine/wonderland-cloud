@@ -122,6 +122,7 @@ export class NetworkConfigurationComponent extends Component {
         /* Automatically reconnect -- for debugging the server */
         setTimeout(this.connect.bind(this), 1000);
       });
+
   }
 
   /**
@@ -169,6 +170,10 @@ export class NetworkConfigurationComponent extends Component {
 
       /* Start updating! */
       this.active = true;
+      if(networkManager.client){
+        this.engine.onXRSessionStart.add(networkManager.client?.onXRSessionStart);
+      }
+
     } catch (e) {
       console.log('Error while trying to join:', e);
     }

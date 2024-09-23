@@ -136,35 +136,36 @@ export class WonderlandClient {
     this.createInputOutputControls();
   }
 
+  recreateMicrophoneTrack(deviceId?: string){
+    const newConstraints = {
+      audio: { deviceId },
+      /* Echo cancellation absolutely destroys everything in Chrome */
+      echoCancellation: false,
+      noiseSuppression: true,
+    };
+
+    navigator.mediaDevices.getUserMedia(newConstraints).then((stream) => {
+      this._debugLog('got stream for device', deviceId, stream);
+      const audioTrack = stream.getTracks()[0];
+
+      const audioSender = this.peerConnection.getSenders().find(function(s) {
+        return s.track?.kind == audioTrack.kind;
+      });
+
+      if (audioSender) {
+        this._debugLog('got audio sender for track replace');
+        audioSender.replaceTrack(audioTrack);
+      }
+    });
+  }
+
   createInputOutputControls(): void {
     //@ts-ignore
     window.wonderlandChangeInputDevice = (deviceId) => {
 
       if (this.peerConnection.connectionState === 'connected') {
         this._debugLog('already connected, replace track');
-        const newConstraints = {
-          audio: { deviceId },
-          sampleSize: { exact: 16 },
-          channelCount: { exact: 1 },
-          /* Echo cancellation absolutely destroys everything in Chrome */
-          echoCancellation: false,
-        };
-
-        navigator.mediaDevices.getUserMedia(newConstraints).then((stream) => {
-          this._debugLog('got stream for device', deviceId, stream);
-          const audioTrack = stream.getTracks()[0];
-
-          const audioSender = this.peerConnection.getSenders().find(function(s) {
-            return s.track?.kind == audioTrack.kind;
-          });
-
-          if (audioSender) {
-            this._debugLog('got audio sender for track replace');
-            audioSender.replaceTrack(audioTrack);
-          }
-
-
-        });
+        this.recreateMicrophoneTrack(deviceId);
       } else {
         this._debugLog('not connected yet, change the deviceId value of instance');
         this.inputDeviceId = deviceId;
@@ -213,6 +214,12 @@ export class WonderlandClient {
       console.error('could not change gain, no gainNode or context exists yet');
     };
 
+  }
+
+  onXRSessionStart(): void{
+    if(this.audio){
+      this.recreateMicrophoneTrack();
+    }
   }
 
   bindOnWindowCloseEvent(): void {
