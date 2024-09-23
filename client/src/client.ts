@@ -266,6 +266,14 @@ export class WonderlandClient {
             return resolve(this.context);
           }
           throw new Error('audio context not active');
+        } else {
+          setInterval(() => {
+            // periodically check if context is supspended and resume it
+            if (this.context && this.context.state === 'suspended') {
+              this.context.resume();
+            }
+          }, 5000);
+          resolve(this.context);
         }
         resolve(this.context);
         setInterval(() => {
@@ -314,9 +322,9 @@ export class WonderlandClient {
     // and https://bugs.chromium.org/p/chromium/issues/detail?id=121673#c121
     this.remoteStream = stream;
     // @ts-ignore
-    if (navigator.audioSession) {
+    if(navigator.audioSession){
       // @ts-ignore
-      navigator.audioSession.type = 'playback';
+      navigator.audioSession.type = "playback"
     }
     if (!this.isIOS) {
       let audioElem: HTMLAudioElement | null = new Audio();
