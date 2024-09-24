@@ -139,8 +139,7 @@ export class WonderlandClient {
   recreateMicrophoneTrack(deviceId?: string){
     const newConstraints = {
       audio: { deviceId },
-      /* Echo cancellation absolutely destroys everything in Chrome */
-      echoCancellation: false,
+      echoCancellation: true,
       noiseSuppression: true,
     };
 
@@ -404,8 +403,7 @@ export class WonderlandClient {
         const media = await navigator.mediaDevices.getUserMedia({
           audio: {
             deviceId: this.inputDeviceId || void 0,
-            /* Echo cancellation absolutely destroys everything in Chrome */
-            echoCancellation: false,
+            echoCancellation: true,
             noiseSuppression: true,
           },
         });
