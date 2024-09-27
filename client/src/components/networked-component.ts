@@ -30,6 +30,13 @@ export class NetworkedComponent extends Component {
 
   start() {
     if (this.networkId < 0) throw new Error('networkId is not configured');
+  }
+
+  onActivate() {
     networkManager.registerNetworkedComponent(this, this.mode == 'send');
+  }
+
+  onDeactivate() {
+    networkManager.unregisterNetworkedComponent(this, this.mode == 'send');
   }
 }

@@ -34,8 +34,13 @@ export class NetworkManager {
     }
   }
 
-  get selfPlayerId(): string | undefined{
-    return this.client ? this.client.id : undefined;
+  unregisterNetworkedComponent(c: NetworkedComponent, write: boolean) {
+    console.log('unregistered', write ? 'write' : 'read', 'comp', c.networkId);
+    if (write) {
+      this.writeComponents.delete(c.networkId);
+    } else {
+      this.readComponents.delete(c.networkId);
+    }
   }
 
 
