@@ -4,6 +4,7 @@ import path from 'path';
 import compressing from 'compressing';
 import * as fs from 'fs';
 import { OperationsClient } from './operations';
+import { SUBSCRIPTION_TYPE, SubscriptionClient } from './subscriptions';
 
 // eslint-disable-next-line no-shadow
 export enum ACCESS_TYPE {
@@ -61,12 +62,14 @@ export class PageClient {
   config: PageConfig;
   authToken: string;
   operationsClient: OperationsClient;
+  subscriptionClient: SubscriptionClient;
 
   // todo create dedicated projects config
   constructor(config: PageConfig) {
     this.config = config;
     this.authToken = getAndValidateAuthToken(this.config);
     this.operationsClient = new OperationsClient(config);
+    this.subscriptionClient = new SubscriptionClient(config);
   }
 
   /**
@@ -199,11 +202,19 @@ export class PageClient {
    * @param existingPage
    */
   async modifyApis(existingPage: Page) {
+    const subscriptions = await this.subscriptionClient.list();
+
+
+    const validSubExists = subscriptions.find(sub => sub.type === SUBSCRIPTION_TYPE.PAGES_APIS);
+
+    if (!validSubExists) {
+      throw new Error('could not find a valid subscription for creating a new server');
+    }
     const response = await fetch(
       `${this.config.COMMANDER_URL}/api/pages/apis`,
       {
         method: 'PUT',
-        body: JSON.stringify(existingPage),
+        body: JSON.stringify({ ...existingPage, subscriptionId: validSubExists.id }),
         headers: {
           authorization: this.authToken,
           'content-type': 'application/json',

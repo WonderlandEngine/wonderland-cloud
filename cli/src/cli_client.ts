@@ -19,7 +19,7 @@ import {
 } from './constants';
 
 import helpDictionary from './cli_help';
-import { SUBSCRIPTION_TYPE_STRING_MAPPING } from './resources/subscriptions';
+import { SUBSCRIPTION_TYPE, SUBSCRIPTION_TYPE_STRING_MAPPING } from './resources/subscriptions';
 
 const readLineInterface = readline.createInterface({
   input: process.stdin,
@@ -435,6 +435,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             intialPageState.apiNames = [apiName];
             intialPageState.apiPaths = [apiPath];
           }
+
           const newState = await client.page?.modifyApis(intialPageState);
           logMessage('added new api routing to page', newState);
           break;

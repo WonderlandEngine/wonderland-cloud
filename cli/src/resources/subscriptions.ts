@@ -9,6 +9,7 @@ export enum SUBSCRIPTION_TYPE {
   NORMAL = 0,
   HRTF = 1,
   TRIAL = 2,
+  PAGES_APIS=4,
 }
 
 interface SubscriptionsMap {
@@ -33,6 +34,8 @@ export const SUBSCRIPTION_TYPE_STRING_MAPPING: SubscriptionsMap = {
   0: 'Basic',
   1: 'Spatial Audio',
   2: 'Trial',
+  3: 'Pages basic',
+  4: 'Apis'
 };
 
 export interface Subscription {
