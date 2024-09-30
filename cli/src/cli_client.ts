@@ -418,7 +418,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             throw Error('no apiPath provided as fifth argument, wl-cloud page add-api <pagename> <apiname> <apipath>');
           }
           const validPath = /^[a-z](([a-z]|\d)-?([a-z]|\d)?){0,20}[a-z]/gm.test(
-            apiPath
+            apiPath,
           );
           if (!validPath) {
             throw new Error('api path can ony be /^[a-z](([a-z]|\\d)-?([a-z]|\\d)?){0,20}[a-z]');
@@ -489,8 +489,10 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           const foundApis = await client.api?.list();
           logMessage(
             'Found apis:',
-            foundApis,
-          );
+            foundApis?.map(api => ({
+              ...api,
+              env: JSON.stringify(api.env),
+            })));
           break;
         case API_COMMANDS.CREATE:
           if (!apiName2) {
