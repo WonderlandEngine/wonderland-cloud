@@ -41,6 +41,8 @@ export interface Page {
   projectName: string;
   // emails of people who starred the project
   starredBy: string[];
+  apiNames: string[];
+  apiPaths: string[];
 }
 
 /**
@@ -120,7 +122,7 @@ export class PageClient {
    *
    * @param pageName {string} your page project name
    */
-  async get(pageName: string) {
+  async get(pageName: string): Promise<Page> {
     const response = await fetch(
       `${this.config.COMMANDER_URL}/api/pages/${pageName}`,
       {
@@ -132,10 +134,9 @@ export class PageClient {
     );
     const serverData = await response.json();
     if (response.status < 400) {
-      logMessage('Successfully loaded page', serverData);
-      return serverData;
+      return serverData as Page;
     }
-    logMessage('Failed to get page', pageName, serverData);
+    logMessage('Failed to get page', pageName, response.status, serverData);
     throw Error('Failed to get project information');
   }
 
@@ -188,6 +189,33 @@ export class PageClient {
       return projects;
     } else {
       logMessage('Failed to list projects', projects);
+      throw Error('Failed to list project files');
+    }
+  }
+
+  /**
+   * Alter the Links between Apis and Pages, by adding/removing a
+   * apiPath / apiName pair
+   * @param existingPage
+   */
+  async modifyApis(existingPage: Page) {
+    const response = await fetch(
+      `${this.config.COMMANDER_URL}/api/pages/apis`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(existingPage),
+        headers: {
+          authorization: this.authToken,
+          'content-type': 'application/json',
+        },
+      },
+    );
+    const modifyOperation = await response.json();
+    if (response.status < 400) {
+      await this.operationsClient.waitUntilJobHasFinished(modifyOperation.jobId);
+      return this.get(existingPage.projectName);
+    } else {
+      logMessage('Failed to modify page apis', response.status, modifyOperation);
       throw Error('Failed to list project files');
     }
   }

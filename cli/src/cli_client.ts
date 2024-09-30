@@ -5,11 +5,18 @@ import { debugMessage, logMessage } from './utils';
 import path from 'path';
 import process from 'process';
 import fs from 'fs';
-import { Page, UploadPageResponse } from './resources/page';
+import { Page } from './resources/page';
 import readline from 'readline';
 import { rm } from 'node:fs/promises';
 import { CloudServer } from './resources/server';
-import { CLI_RESOURCES, COMMAND_ENUMS, PAGES_COMMANDS, SERVERS_COMMANDS, SUBSCRIPTION_COMMAND } from './constants';
+import {
+  API_COMMANDS,
+  CLI_RESOURCES,
+  COMMAND_ENUMS,
+  PAGES_COMMANDS,
+  SERVERS_COMMANDS,
+  SUBSCRIPTION_COMMAND,
+} from './constants';
 
 import helpDictionary from './cli_help';
 import { SUBSCRIPTION_TYPE_STRING_MAPPING } from './resources/subscriptions';
@@ -117,9 +124,9 @@ const validateAndGetCreateArgs = (
   if (args.length < 2) {
     logMessage(
       'Number of arguments does not match, command expects at least 1 arguments,' +
-        ' the project name and optional project location, ' +
-        'the project location can be relative or absolute.\n' +
-        ' Example usage: "wle-cloud pages create my-project-name --access unlisted --noThreads'
+      ' the project name and optional project location, ' +
+      'the project location can be relative or absolute.\n' +
+      ' Example usage: "wle-cloud pages create my-project-name --access unlisted --noThreads',
     );
     throw new Error('Failed to process command');
   }
@@ -203,7 +210,7 @@ const deleteDeploymentConfig = (config: CloudConfig) => {
 
 const saveDeploymentConfig = (
   projectLocation: string,
-  uploadProjectResponse: UploadPageResponse,
+  uploadProjectResponse: Page,
   config: CloudConfig,
 ) => {
   const projectConfigLocation = config.PAGE_CONFIG_LOCATION
@@ -221,6 +228,7 @@ const saveDeploymentConfig = (
 };
 
 const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
+  // arguments is everything after the
   const commandArguments = command.arguments as string[];
   const commandVerb = command.command;
   const resource = command.resource;
@@ -300,6 +308,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
       }
       break;
     case CLI_RESOURCES.PAGE:
+      const [pageName, apiName, apiPath] = commandArguments;
       switch (commandVerb) {
         case PAGES_COMMANDS.GET:
           const getProjectSettings = validateAndGetUpdateArgs(
@@ -325,7 +334,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           );
           saveDeploymentConfig(
             createProjectSettings.projectLocation,
-            createProjectResponse,
+            createProjectResponse as Page,
             cliConfig,
           );
           logMessage(
@@ -385,18 +394,75 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           );
           saveDeploymentConfig(
             updateProjectSettings.projectLocation,
-            updateProjectResponse,
+            updateProjectResponse as Page,
             cliConfig,
           );
           break;
         case PAGES_COMMANDS.LIST:
           const pages = await client.page?.list();
-          console.log('found projects');
+          logMessage('found projects');
           pages?.map((page: Page) =>
             console.log(
               `${page.projectName} - ${page.accessType} - ${page.projectDomain} - ${page.fullProjectUrl}`,
             ),
           );
+          break;
+        case PAGES_COMMANDS.ADD_API:
+          if (!pageName) {
+            throw Error('no page name provided as third argument, wl-cloud page add-api <pagename> <apiname> <apipath>');
+          }
+          if (!apiName) {
+            throw Error('no apiName provided as fourth argument, wl-cloud page add-api <pagename> <apiname> <apipath>');
+          }
+          if (!apiPath) {
+            throw Error('no apiPath provided as fifth argument, wl-cloud page add-api <pagename> <apiname> <apipath>');
+          }
+          const validPath = /^[a-z](([a-z]|\d)-?([a-z]|\d)?){0,20}[a-z]/gm.test(
+            apiPath
+          );
+          if (!validPath) {
+            throw new Error('api path can ony be /^[a-z](([a-z]|\\d)-?([a-z]|\\d)?){0,20}[a-z]');
+          }
+          logMessage('adding api routing', pageName, apiName, apiPath);
+          const intialPageState = await (client.page?.get(pageName));
+          if (!intialPageState) {
+            throw new Error('could not find desired page');
+          }
+          if (intialPageState.apiNames) {
+            intialPageState.apiNames.push(apiName);
+            intialPageState.apiPaths.push(apiPath);
+          } else {
+            intialPageState.apiNames = [apiName];
+            intialPageState.apiPaths = [apiPath];
+          }
+          const newState = await client.page?.modifyApis(intialPageState);
+          logMessage('added new api routing to page', newState);
+          break;
+        case PAGES_COMMANDS.DELETE_API:
+
+          if (!pageName) {
+            throw Error('no page name provided as third argument, wl-cloud page delete-api <pagename> <apiname> <apipath>');
+          }
+          if (!apiName) {
+            throw Error('no apiName provided as fourth argument, wl-cloud page delete-api <pagename> <apiname> <apipath>');
+          }
+          const intialPageState2 = await (client.page?.get(pageName));
+          if (!intialPageState2) {
+            throw new Error('could not find desired page');
+          }
+          if (intialPageState2.apiNames) {
+            const existingApi = intialPageState2.apiNames.indexOf(apiName);
+            if (existingApi > -1) {
+              intialPageState2.apiNames.splice(existingApi, 1);
+              intialPageState2.apiPaths.splice(existingApi, 1);
+            } else {
+              logMessage('Nothing to do, page does not contain any apis linked');
+            }
+          } else {
+            logMessage('Nothing to do, page does not contain any apis linked');
+          }
+          const newState2 = await client.page?.modifyApis(intialPageState2);
+          logMessage('removed apiRouting from API', newState2);
           break;
       }
       break;
@@ -413,6 +479,53 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             'Found subscriptions:',
             foundSubs,
           );
+          break;
+      }
+      break;
+    case CLI_RESOURCES.API:
+      const [apiName2, port, image, dockerConfigBase64, envVars] = commandArguments;
+      switch (commandVerb) {
+        case API_COMMANDS.LIST:
+          const foundApis = await client.api?.list();
+          logMessage(
+            'Found apis:',
+            foundApis,
+          );
+          break;
+        case API_COMMANDS.CREATE:
+          if (!apiName2) {
+            throw new Error('please provide apiName: wl-cloud api create <apiname> <apiport> <image> <docvkerConfigBase64> <envVars>');
+          }
+          if (!port) {
+            throw new Error('please provide port: wl-cloud api create <apiname> <apiport> <image> <docvkerConfigBase64> <envVars>');
+          }
+          if (!image) {
+            throw new Error('please provide image: wl-cloud api create <apiname> <apiport> <image> <docvkerConfigBase64> <envVars>');
+          }
+
+          const envVarsParsed: { [k: string]: string } = {};
+          if (envVars) {
+            envVars.split(',').forEach(envVar => {
+              const [key, value] = envVar.split('=');
+              envVarsParsed[key] = value;
+            });
+
+          }
+          const createdApi = await client.api?.create({
+            name: apiName2,
+            port: Number(port),
+            dockerConfigBase64,
+            env: envVarsParsed,
+            image,
+          });
+          logMessage('created new api deployment', createdApi);
+          break;
+        case API_COMMANDS.DELETE:
+          if (!apiName2) {
+            throw new Error('please provide apiName: wl-cloud api delete <apiname> <apiport> <image> <docvkerConfigBase64> envVar1=Value,envVar2=value2');
+          }
+          await client.api?.delete(apiName2);
+          logMessage('deleted existing api deployment', apiName2);
           break;
       }
       break;

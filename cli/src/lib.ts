@@ -8,6 +8,7 @@ import { PageClient } from './resources/page';
 import { ServerClient } from './resources/server';
 import { CLI_RESOURCES } from './constants';
 import { SubscriptionClient } from './resources/subscriptions';
+import { ApisClient } from './resources/api';
 
 dotenvConfig();
 
@@ -37,6 +38,7 @@ export class CloudClient {
   page?: PageClient;
   server?: ServerClient;
   subscription?: SubscriptionClient;
+  api?: ApisClient;
   authToken: string;
 
   constructor(cloudConfig: Partial<CloudConfig>, enabledResource?: CLI_RESOURCES) {
@@ -55,6 +57,9 @@ export class CloudClient {
         case CLI_RESOURCES.SUBSCRIPTION:
           this.subscription = new SubscriptionClient(this.config);
           break;
+        case CLI_RESOURCES.API:
+          this.api = new ApisClient(this.config);
+          break;
         default:
           logMessage('unknown resource provided', enabledResource);
           throw Error(`unknown resource ${enabledResource} provided`);
@@ -62,6 +67,7 @@ export class CloudClient {
     } else {
       this.server = new ServerClient(this.config);
       this.page = new PageClient(this.config);
+      this.api = new ApisClient(this.config);
     }
   }
 
