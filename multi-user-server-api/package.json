@@ -1,6 +1,6 @@
 {
   "name": "@wonderlandcloud/multi-user-server-api",
-  "version": "0.1.3",
+  "version": "0.1.30",
   "description": "API for custom mutli-user servers.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
