@@ -14,7 +14,7 @@
     "dist",
     "README.md"
   ],
-  "repository": "https://github.com/WonderlandEngine/wonderland-cloud/cli",
+  "repository": "https://github.com/WonderlandEngine/wonderland-cloud/tree/main/cli",
   "author": "Wonderland GmbH",
   "license": "MIT",
   "scripts": {

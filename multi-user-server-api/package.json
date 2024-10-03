@@ -12,7 +12,7 @@
   ],
   "author": "Wonderland GmbH",
   "license": "MIT",
-  "repository": "https://github.com/WonderlandEngine/wonderland-cloud/multi-user-server-api",
+  "repository": "https://github.com/WonderlandEngine/wonderland-cloud/tree/main/multi-user-server-api",
   "scripts": {
     "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

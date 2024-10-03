@@ -6,7 +6,7 @@
   "wonderlandengine": {},
   "author": "Wonderland GmbH",
   "license": "MIT",
-  "repository": "https://github.com/WonderlandEngine/wonderland-cloud/client",
+  "repository": "https://github.com/WonderlandEngine/wonderland-cloud/tree/main/client",
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "format": "prettier -w ./src",
