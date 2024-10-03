@@ -2,7 +2,7 @@ import {
   CLI_RESOURCES,
   PAGES_COMMANDS,
   SERVERS_COMMANDS,
-  COMMAND_ENUMS, SUBSCRIPTION_COMMAND,
+  COMMAND_ENUMS, SUBSCRIPTION_COMMAND, API_COMMANDS,
 } from './constants';
 
 const helpMapping: {
@@ -20,6 +20,7 @@ Optional arguments:
 helpMapping[CLI_RESOURCES.SERVER] = {};
 helpMapping[CLI_RESOURCES.PAGE] = {};
 helpMapping[CLI_RESOURCES.SUBSCRIPTION] = {};
+helpMapping[CLI_RESOURCES.API] = {};
 
 helpMapping[CLI_RESOURCES.SERVER][
   SERVERS_COMMANDS.UPDATE
@@ -98,7 +99,21 @@ helpMapping[CLI_RESOURCES.PAGE][
   ] = `Usage: wl-cloud page list [additionalArgs] 
 List your existing page project deployments.
 ${pageArguments}`;
+helpMapping[CLI_RESOURCES.PAGE][
+  PAGES_COMMANDS.ADD_API
+  ] = `Add a new API routing to your page domain:
+  Usage: wl-cloud page add-api page-name api-name api-path.
+${pageArguments}`;
+helpMapping[CLI_RESOURCES.PAGE][
+  PAGES_COMMANDS.DELETE_API
+  ] = `Removed an existing API routing from your page domain:
+  Usage: wl-cloud page delete-api page-name api-name.
+${pageArguments}`;
 
 helpMapping[CLI_RESOURCES.SUBSCRIPTION][SUBSCRIPTION_COMMAND.LIST] = 'List your current subscriptions and how many servers are available';
+helpMapping[CLI_RESOURCES.API][API_COMMANDS.CREATE] = 'Creates a new api deployment, example command:' +
+  'wl-cloud api create my-api-name 1234 image/to/api {optionalBase64EncodedDockerConfig} env1=vau1,env2=value2';
+helpMapping[CLI_RESOURCES.API][API_COMMANDS.DELETE] = 'Creates an existing api deployment, example command wl-cloud api delete my-api-name.' +
+  'Please note, that you cannot delete a api deployment which is still in use by pages routings';
 
 export default helpMapping;
