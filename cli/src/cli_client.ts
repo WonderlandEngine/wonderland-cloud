@@ -344,19 +344,16 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           );
           break;
         case PAGES_COMMANDS.DELETE:
-          const deleteProjectSettings = validateAndGetUpdateArgs(
-            commandArguments,
-            cliConfig,
-          );
+          const projectName = commandArguments[0];
 
           const toDelete = cliConfig.FORCE || await new Promise((resolve) => {
             readLineInterface.question(
               'Are you sure that you want to delete the project with the full name ' +
-              deleteProjectSettings.projectName +
+              projectName +
               '?\n Please confirm by re-typing the projects name and submit with pressing enter:\n',
               async (projectName) => {
                 if (
-                  deleteProjectSettings.projectName !==
+                  projectName !==
                   projectName.replace(/(\r\n|\n|\r)/gm, '')
                 ) {
                   return resolve(false);
@@ -368,16 +365,16 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           });
 
           if (!toDelete) {
-            console.log(deleteProjectSettings.projectName);
+            console.log(projectName);
             console.log('Project name mismatch, exiting');
             process.exit(1);
           }
 
-          await client.page?.delete(deleteProjectSettings.projectName);
+          await client.page?.delete(projectName);
           await deleteDeploymentConfig(cliConfig);
 
           logMessage(
-            `Successfully deleted domain and files for ${deleteProjectSettings.projectName}`,
+            `Successfully deleted domain and files for ${projectName}`,
           );
 
           break;
@@ -392,11 +389,16 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             updateProjectSettings.isPublic,
             updateProjectSettings.withThreads,
           );
-          saveDeploymentConfig(
-            updateProjectSettings.projectLocation,
-            updateProjectResponse as Page,
-            cliConfig,
-          );
+          try {
+            saveDeploymentConfig(
+              updateProjectSettings.projectLocation,
+              updateProjectResponse as Page,
+              cliConfig,
+            );
+          } catch (error) {
+            logMessage('failed to updated deployment config', error);
+          }
+
           break;
         case PAGES_COMMANDS.LIST:
           const pages = await client.page?.list();
