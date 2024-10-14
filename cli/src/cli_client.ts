@@ -217,9 +217,11 @@ const saveDeploymentConfig = (
     ? path.join(config.PAGE_CONFIG_LOCATION)
     : path.join(process.cwd(), 'deployment.json');
 
+  logMessage('updating projectConfig... ', projectConfigLocation);
   const projectConfigPath = path.parse(projectConfigLocation);
   if (projectConfigPath.dir && !fs.existsSync(projectConfigPath.dir)) {
     fs.mkdirSync(projectConfigPath.dir, { recursive: true });
+    logMessage('creating project config dir...', projectConfigPath.dir);
   }
   fs.writeFileSync(
     projectConfigLocation,
@@ -389,14 +391,13 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             updateProjectSettings.isPublic,
             updateProjectSettings.withThreads,
           );
-          try {
+
+          if (!cliConfig.SKIP_CONFIG_UPDATE) {
             saveDeploymentConfig(
               updateProjectSettings.projectLocation,
               updateProjectResponse as Page,
               cliConfig,
             );
-          } catch (error) {
-            logMessage('failed to updated deployment config', error);
           }
 
           break;

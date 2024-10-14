@@ -68,6 +68,10 @@ const parseArgsConfig: ParseArgsConfig = {
     hrtf:{
       type: 'boolean',
       default: false
+    },
+    skipConfigUpdate:{
+      type: 'boolean',
+      default: false
     }
   },
   strict: !process.env.TEST_MODE,
@@ -103,6 +107,7 @@ export interface CliClientArgs {
   force: boolean;
   develop: boolean,
   hrtf: boolean;
+  skipConfigUpdate: boolean
 }
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -124,6 +129,7 @@ export interface CloudConfig {
   FORCE: boolean;
   DEVELOP: boolean;
   HRTF: boolean;
+  SKIP_CONFIG_UPDATE: boolean
 }
 
 const cliConfig: Partial<CloudConfig> = {
@@ -138,7 +144,8 @@ const cliConfig: Partial<CloudConfig> = {
   HELP: args.help,
   FORCE: args.force,
   DEVELOP: args.develop,
-  HRTF: args.hrtf
+  HRTF: args.hrtf,
+  SKIP_CONFIG_UPDATE: args.skipConfigUpdate
 };
 
 export const getAndValidateAuthToken = (
