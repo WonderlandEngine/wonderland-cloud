@@ -176,8 +176,8 @@ export class ServerClient extends EventEmitter {
       await new Promise((resolve) => setTimeout(resolve, 10000));
       return this.#sendStartServerSignal();
     } else if (response.status === 202) {
-      logMessage('Server is starting...');
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      logMessage('...');
+      await new Promise((resolve) => setTimeout(resolve, 10000));
       return this.#sendStartServerSignal();
     } else {
       logMessage('Failed to start server!!', await response.json());
@@ -555,7 +555,7 @@ export class ServerClient extends EventEmitter {
       const { packageName: packageN } = await this.#uploadPackageAndServer({ update: false, serverName });
       console.log({
         name: serverName,
-        packageName,
+        packageName: packageN,
         fileName: this.packedPackageName,
         cli: isDevelop,
         hrtfAudio: hrtfEnabled,
