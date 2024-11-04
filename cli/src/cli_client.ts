@@ -50,7 +50,7 @@ const checkAndGetCommandArgs = (): ResourceCommandAndArguments => {
     logMessage(
       `Provided resource ${resource} is unknown, available resources: ${Object.values(
         CLI_RESOURCES,
-      )} for help use wl-cloud <resource> <command> --help`,
+      )} for help use wl-cloud <resource> --help or wl-cloud <resource> <command> --help`,
     );
     process.exit(1);
   } else {
@@ -235,7 +235,11 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
   const commandVerb = command.command;
   const resource = command.resource;
   if (cliConfig.HELP) {
-    logMessage(helpDictionary[resource][commandVerb]);
+    if (commandVerb) {
+      logMessage(helpDictionary[resource][commandVerb]);
+    } else {
+      logMessage(helpDictionary[resource]);
+    }
     process.exit(0);
   }
   const client = new CloudClient(cliConfig, resource);
@@ -487,7 +491,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
       }
       break;
     case CLI_RESOURCES.API:
-      const [apiName2, port, image, dockerConfigBase64, envVars] = commandArguments;
+      const [apiName2, port, image, envVars, dockerConfigBase64] = commandArguments;
       switch (commandVerb) {
         case API_COMMANDS.LIST:
           const foundApis = await client.api?.list();
@@ -500,18 +504,19 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           break;
         case API_COMMANDS.CREATE:
           if (!apiName2) {
-            throw new Error('please provide apiName: wl-cloud api create <apiname> <apiport> <image> <docvkerConfigBase64> <envVars>');
+            throw new Error('please provide apiName: wl-cloud api create <apiname> <apiport> <image>  <envVars-optional> <docvkerConfigBase64-optional>');
           }
           if (!port) {
-            throw new Error('please provide port: wl-cloud api create <apiname> <apiport> <image> <docvkerConfigBase64> <envVars>');
+            throw new Error('please provide port: wl-cloud api create <apiname> <apiport> <image>  <envVars-optional> <docvkerConfigBase64-optional>');
           }
           if (!image) {
-            throw new Error('please provide image: wl-cloud api create <apiname> <apiport> <image> <docvkerConfigBase64> <envVars>');
+            throw new Error('please provide image: wl-cloud api create <apiname> <apiport> <image>  <envVars-optional> <docvkerConfigBase64-optional>');
           }
 
+          const actualEnvVars = envVars.includes('=') ? envVars : '';
           const envVarsParsed: { [k: string]: string } = {};
-          if (envVars) {
-            envVars.split(',').forEach(envVar => {
+          if (actualEnvVars) {
+            actualEnvVars.split(',').forEach(envVar => {
               const [key, value] = envVar.split('=');
               envVarsParsed[key] = value;
             });
@@ -520,7 +525,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           const createdApi = await client.api?.create({
             name: apiName2,
             port: Number(port),
-            dockerConfigBase64,
+            dockerConfigBase64: envVars.includes('=') ? dockerConfigBase64 : envVars || '',
             env: envVarsParsed,
             image,
           });

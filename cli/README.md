@@ -10,7 +10,9 @@ wl-cloud [resource] [command] ... [--help | -h]
 
 The following resources are available:
 - server
-- project
+- page
+- subscription
+- api
 ...
 ```
 
@@ -226,6 +228,68 @@ export ACCESS=unlisted npm exec wl-cloud page update
 export ACCESS=public && export PAGE_CONFIG_LOCATION=./config/example-config.json &&  npm exec wl-cloud page update
 ```
 
+## Deploying and working with apis
+
+```shell
+npm exec wl-cloud api create my-api-name 80 strm/helloworld-http env1=value1,env2=value2
+```
+
+This command will create a hello world application listening on port `80` with the image `strm/helloworld-http` and the environment values `env1=value1` and `env2=value2`.
+
+### Working with private registries
+
+If you want to use a private docker registry, then you need to provide a docker login secret encoded in base64. You can
+generate one by using this command.
+
+```shell
+kubectl create secret docker-registry --dry-run=true docker-regcred \
+--docker-server=https://index.docker.io/v1/ \
+--docker-username=xxx \
+--docker-password=xxx \
+--docker-email=yourmail@yourdomain.com \
+-o yaml > docker-secret.yaml
+```
+This will generate a `.yaml` file with the following content
+
+```yaml
+apiVersion: v1
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyJodHRwczovL2luZGV4LmRvY2tlci5pby92MS8iOnsidXNlcm5hbWUiOiJ4eHgiLCJwYXNzd29yZCI6Inh4eCIsImVtYWlsIjoieW91cm1haWxAeW91cmRvbWFpbi5jb20iLCJhdXRoIjoiZUhoNE9uaDRlQT09In19fQ==
+kind: Secret
+metadata:
+  creationTimestamp: null
+  name: docker-regcred
+type: kubernetes.io/dockerconfigjson
+```
+Then you can copy the value for `.dockerconfigjson` and use it as the 4th argument when creating an api:
+
+```shell
+npm exec wl-cloud api create my-api-name 80 strm/helloworld-http eyJhdXRocyI6eyJodHRwczovL2luZGV4LmRvY2tlci5pby92MS8iOnsidXNlcm5hbWUiOiJ4eHgiLCJwYXNzd29yZCI6Inh4eCIsImVtYWlsIjoieW91cm1haWxAeW91cmRvbWFpbi5jb20iLCJhdXRoIjoiZUhoNE9uaDRlQT09In19fQ 
+```
+
+Creating an api with env vars and docker config
+
+```shell
+npm exec wl-cloud api create my-api-name 80 strm/helloworld-http env1=value1,env2=value2 eyJhdXRocyI6eyJodHRwczovL2luZGV4LmRvY2tlci5pby92MS8iOnsidXNlcm5hbWUiOiJ4eHgiLCJwYXNzd29yZCI6Inh4eCIsImVtYWlsIjoieW91cm1haWxAeW91cmRvbWFpbi5jb20iLCJhdXRoIjoiZUhoNE9uaDRlQT09In19fQ 
+```
+
+### Adding an api route to a page
+
+If you want to add a new api route to a page deployment, you need to have the `Pages with Apis` subscription.
+Then you can run this command to deploy your `my-api-name` at `my-api-path` on your `page-name`
+```shell
+npm exec wl-cloud page add-api page-name my-api-name my-path
+```
+
+This will publish your api on the `https://page-name.cloud.wondeland.dev/my-path` url
+
+### Removing an api route from a page
+
+To remove an api route from a page you can use this command.
+```shell
+
+wl-cloud page delete-api page-name my-api-name
+```
 ## What is Wonderland Cloud?
 
 [Wonderland Cloud](https://cloud.wonderland.dev) is a set of cloud services

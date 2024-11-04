@@ -555,7 +555,7 @@ export class ServerClient extends EventEmitter {
       const { packageName: packageN } = await this.#uploadPackageAndServer({ update: false, serverName });
       console.log({
         name: serverName,
-        packageName,
+        packageName: packageN,
         fileName: this.packedPackageName,
         cli: isDevelop,
         hrtfAudio: hrtfEnabled,
