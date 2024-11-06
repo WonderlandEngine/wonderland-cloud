@@ -121,7 +121,7 @@ const validateAndGetCreateArgs = (
   isPublic: boolean;
   withThreads: boolean;
 } => {
-  if (args.length < 2) {
+  if (args.length < 1) {
     logMessage(
       'Number of arguments does not match, command expects at least 1 arguments,' +
       ' the project name and optional project location, ' +
