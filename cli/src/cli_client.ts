@@ -344,10 +344,9 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             cliConfig,
           );
           logMessage(
-            `Project files successfully uploaded and the domain has been created.
-             Please note, that it takes up to 24h for the domain to work because of
-             SSL certificates provisioning process by Google.`,
+            `Project files successfully uploaded and the domain has been created.`,
           );
+          logMessage(createProjectResponse);
           break;
         case PAGES_COMMANDS.DELETE:
           const projectName = commandArguments[0];
