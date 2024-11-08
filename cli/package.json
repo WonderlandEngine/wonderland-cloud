@@ -1,6 +1,6 @@
 {
   "name": "@wonderlandcloud/cli",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "CLI client and node library for interaction with Wonderland Cloud services.",
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
