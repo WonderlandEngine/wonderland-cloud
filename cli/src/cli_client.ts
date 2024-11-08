@@ -464,9 +464,11 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
               intialPageState2.apiPaths.splice(existingApi, 1);
             } else {
               logMessage('Nothing to do, page does not contain any apis linked');
+              break;
             }
           } else {
             logMessage('Nothing to do, page does not contain any apis linked');
+            break;
           }
           const newState2 = await client.page?.modifyApis(intialPageState2);
           logMessage('removed apiRouting from API', newState2);
