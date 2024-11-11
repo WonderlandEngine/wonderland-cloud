@@ -621,7 +621,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
               }
               actualValue = value;
               break;
-            case 'dockerConfig64':
+            case 'dockerConfigBase64':
               if (!value) {
                 throw new Error(
                   `Provided dockerConfig64 name is empty, cannot proceed`
@@ -643,6 +643,8 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           const updatedApi = await client.api?.update(updateData);
           logMessage('updated new api deployment', updatedApi);
           break;
+        default:
+          throw new Error(`Unknown verb ${commandVerb}, available verbs are ${API_COMMANDS}`);
       }
       break;
   }
