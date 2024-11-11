@@ -15,12 +15,20 @@ export interface WleApi {
   env: { key: string; value: string }[];
 }
 
+export type UpdateDataWleApi = keyof Pick<
+  WleApi,
+  'env' | 'image' | 'dockerConfigBase64' | 'port'
+>;
+
 /**
  * Either WLE_CREDENTIALS or WLE_CREDENTIALS_LOCATION should be set. If none are set,
  * the library tries to find a wle-apitoken.json in the current work directory
  */
 export type ApisConfig = PartialBy<
-  Pick<CloudConfig, 'WLE_CREDENTIALS' | 'COMMANDER_URL' | 'WLE_CREDENTIALS_LOCATION'>,
+  Pick<
+    CloudConfig,
+    'WLE_CREDENTIALS' | 'COMMANDER_URL' | 'WLE_CREDENTIALS_LOCATION'
+  >,
   'WLE_CREDENTIALS' | 'WLE_CREDENTIALS_LOCATION'
 >;
 
@@ -53,7 +61,7 @@ export class ApisClient {
         headers: {
           authorization: this.authToken,
         },
-      },
+      }
     );
     const serverData = await response.json();
     if (response.status < 300) {
@@ -70,15 +78,12 @@ export class ApisClient {
    */
   async list(): Promise<WleApi[]> {
     debugMessage('Loading apis... ');
-    const response = await fetch(
-      `${this.config.COMMANDER_URL}/api/apis`,
-      {
-        method: 'GET',
-        headers: {
-          authorization: this.authToken,
-        },
+    const response = await fetch(`${this.config.COMMANDER_URL}/api/apis`, {
+      method: 'GET',
+      headers: {
+        authorization: this.authToken,
       },
-    );
+    });
     const serverData = await response.json();
     if (response.status < 300) {
       debugMessage('Successfully got apis', serverData);
@@ -100,42 +105,46 @@ export class ApisClient {
         headers: {
           authorization: this.authToken,
         },
-      },
+      }
     );
     const serverData = await response.json();
     if (response.status < 300) {
       debugMessage('Successfully got api', serverData);
       return serverData;
     } else {
-      logMessage('Failed to get apis', serverData);
-      throw Error('Failed to get apis');
+      logMessage(`Failed to get api ${apiName}`, serverData);
+      throw Error(`Failed to get api ${apiName}`);
     }
   }
-
 
   /**
    * Create new api deployment
    */
-  async create(createApiData: Omit<Pick<WleApi, 'port' | 'name' | 'image' | 'dockerConfigBase64'>, |'env'> & Partial<Omit<WleApi, 'env'>> & {
-    env: { [k: string]: string }
-  }): Promise<WleApi> {
+  async create(
+    createApiData: Omit<
+      Pick<WleApi, 'port' | 'name' | 'image' | 'dockerConfigBase64'>,
+      'env'
+    > &
+      Partial<Omit<WleApi, 'env'>> & {
+        env: { [k: string]: string };
+      }
+  ): Promise<WleApi> {
     const validName = /^[a-z](([a-z]|\d)-?([a-z]|\d)?){0,20}[a-z]/gm.test(
-      createApiData.name,
+      createApiData.name
     );
     if (!validName) {
-      throw new Error('api name can ony be /^[a-z](([a-z]|\\d)-?([a-z]|\\d)?){0,20}[a-z]');
+      throw new Error(
+        'api name can ony be /^[a-z](([a-z]|\\d)-?([a-z]|\\d)?){0,20}[a-z]'
+      );
     }
-    const response = await fetch(
-      `${this.config.COMMANDER_URL}/api/apis`,
-      {
-        method: 'POST',
-        headers: {
-          authorization: this.authToken,
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify(createApiData),
+    const response = await fetch(`${this.config.COMMANDER_URL}/api/apis`, {
+      method: 'POST',
+      headers: {
+        authorization: this.authToken,
+        'content-type': 'application/json',
       },
-    );
+      body: JSON.stringify(createApiData),
+    });
     const serverData = await response.json();
     if (response.status < 300) {
       debugMessage('Successfully got apis', serverData);
@@ -144,6 +153,32 @@ export class ApisClient {
     } else {
       logMessage('Failed to get apis', serverData);
       throw Error('Failed to get apis');
+    }
+  }
+
+  /**
+   * Create new api deployment
+   */
+  async update(data: { name: string; [key: string]: any }): Promise<WleApi> {
+    const response = await fetch(
+      `${this.config.COMMANDER_URL}/api/apis/${data.name}`,
+      {
+        method: 'PUT',
+        headers: {
+          authorization: this.authToken,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      }
+    );
+    const serverData = await response.json();
+    if (response.status < 300) {
+      debugMessage('Successfully updated apis', serverData);
+      await this.operationsClient.waitUntilJobHasFinished(serverData.jobId);
+      return this.get(data.name);
+    } else {
+      logMessage('Failed to update apis', serverData);
+      throw Error('Failed to updated apis');
     }
   }
 }

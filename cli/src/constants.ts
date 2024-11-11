@@ -3,7 +3,7 @@ export enum CLI_RESOURCES {
   SERVER = 'server',
   PAGE = 'page',
   SUBSCRIPTION = 'subscription',
-  API = 'api'
+  API = 'api',
 }
 
 // eslint-disable-next-line no-shadow
@@ -14,7 +14,7 @@ export enum PAGES_COMMANDS {
   DELETE = 'delete',
   GET = 'get',
   ADD_API = 'add-api',
-  DELETE_API = 'delete-api'
+  DELETE_API = 'delete-api',
 }
 
 // eslint-disable-next-line no-shadow
@@ -25,9 +25,8 @@ export enum SERVERS_COMMANDS {
   DELETE = 'delete',
   DEBUG = 'debug',
   GET = 'get',
-  START = 'start'
+  START = 'start',
 }
-
 
 // eslint-disable-next-line no-shadow
 export enum SUBSCRIPTION_COMMAND {
@@ -38,8 +37,13 @@ export enum SUBSCRIPTION_COMMAND {
 export enum API_COMMANDS {
   LIST = 'list',
   CREATE = 'create',
-  DELETE = 'delete'
+  DELETE = 'delete',
+  UPDATE = 'update',
+  GET = 'get',
 }
 
-
-export type COMMAND_ENUMS = SERVERS_COMMANDS | PAGES_COMMANDS | SUBSCRIPTION_COMMAND |API_COMMANDS;
+export type COMMAND_ENUMS =
+  | SERVERS_COMMANDS
+  | PAGES_COMMANDS
+  | SUBSCRIPTION_COMMAND
+  | API_COMMANDS;

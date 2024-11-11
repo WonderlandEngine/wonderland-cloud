@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import { CloudClient } from './lib';
-import cliConfig, { CloudConfig, getAndValidateAuthToken, positionals } from './cli_config';
+import cliConfig, {
+  CloudConfig,
+  getAndValidateAuthToken,
+  positionals,
+} from './cli_config';
 import { debugMessage, logMessage } from './utils';
 import path from 'path';
 import process from 'process';
@@ -19,7 +23,11 @@ import {
 } from './constants';
 
 import helpDictionary from './cli_help';
-import { SUBSCRIPTION_TYPE, SUBSCRIPTION_TYPE_STRING_MAPPING } from './resources/subscriptions';
+import {
+  SUBSCRIPTION_TYPE,
+  SUBSCRIPTION_TYPE_STRING_MAPPING,
+} from './resources/subscriptions';
+import { UpdateDataWleApi, WleApi } from './resources/api';
 
 const readLineInterface = readline.createInterface({
   input: process.stdin,
@@ -41,39 +49,42 @@ const checkAndGetCommandArgs = (): ResourceCommandAndArguments => {
   if (!resource) {
     logMessage(
       `Please provide a resource after 'wl-cloud', possible options are ${Object.values(
-        CLI_RESOURCES,
-      )} for help use wl-cloud <resource> <command> --help`,
+        CLI_RESOURCES
+      )} for help use wl-cloud <resource> <command> --help`
     );
     process.exit(1);
   }
   if (!Object.values(CLI_RESOURCES).includes(resource as CLI_RESOURCES)) {
     logMessage(
       `Provided resource ${resource} is unknown, available resources: ${Object.values(
-        CLI_RESOURCES,
-      )} for help use wl-cloud <resource> --help or wl-cloud <resource> <command> --help`,
+        CLI_RESOURCES
+      )} for help use wl-cloud <resource> --help or wl-cloud <resource> <command> --help`
     );
     process.exit(1);
   } else {
-    if (resource === CLI_RESOURCES.PAGE && !Object.values(PAGES_COMMANDS).includes(command as PAGES_COMMANDS)) {
+    if (
+      resource === CLI_RESOURCES.PAGE &&
+      !Object.values(PAGES_COMMANDS).includes(command as PAGES_COMMANDS)
+    ) {
       logMessage(
         `Provided command ${command} is unknown, available commands: ${Object.values(
-          PAGES_COMMANDS,
-        )} for help use wl-cloud <resource> <command> --help`,
+          PAGES_COMMANDS
+        )} for help use wl-cloud <resource> <command> --help`
       );
       process.exit(1);
     }
 
     if (
-      resource === CLI_RESOURCES.SERVER && !Object.values(SERVERS_COMMANDS).includes(command as SERVERS_COMMANDS)
+      resource === CLI_RESOURCES.SERVER &&
+      !Object.values(SERVERS_COMMANDS).includes(command as SERVERS_COMMANDS)
     ) {
       logMessage(
         `Provided command ${command} is unknown, available commands: ${Object.values(
-          SERVERS_COMMANDS,
-        )} for help use wl-cloud <resource> <command> --help`,
+          SERVERS_COMMANDS
+        )} for help use wl-cloud <resource> <command> --help`
       );
       process.exit(1);
     }
-
 
     return {
       resource: resource as CLI_RESOURCES,
@@ -95,7 +106,7 @@ const checkAndGetAccessType = (config: CloudConfig) => {
       logMessage(
         'Unknown access parameter provided ',
         config.PAGE_ACCESS,
-        ' possible options are "public" | "unlisted"',
+        ' possible options are "public" | "unlisted"'
       );
       throw new Error('Unknown access parameter provided');
     }
@@ -114,7 +125,7 @@ const checkAndGetAccessType = (config: CloudConfig) => {
  */
 const validateAndGetCreateArgs = (
   args: string[],
-  config: CloudConfig,
+  config: CloudConfig
 ): {
   projectName: string;
   projectLocation: string;
@@ -124,9 +135,9 @@ const validateAndGetCreateArgs = (
   if (args.length < 1) {
     logMessage(
       'Number of arguments does not match, command expects at least 1 arguments,' +
-      ' the project name and optional project location, ' +
-      'the project location can be relative or absolute.\n' +
-      ' Example usage: "wle-cloud pages create my-project-name --access unlisted --noThreads',
+        ' the project name and optional project location, ' +
+        'the project location can be relative or absolute.\n' +
+        ' Example usage: "wle-cloud pages create my-project-name --access unlisted --noThreads'
     );
     throw new Error('Failed to process command');
   }
@@ -155,7 +166,7 @@ const validateAndGetCreateArgs = (
  */
 const validateAndGetUpdateArgs = (
   args: string[],
-  config: CloudConfig,
+  config: CloudConfig
 ): {
   projectName: string;
   projectLocation: string;
@@ -174,7 +185,7 @@ const validateAndGetUpdateArgs = (
   } catch (err) {
     logMessage(
       'Could not find deployment file or file corrupt, using cmd args instead',
-      projectConfig,
+      projectConfig
     );
   }
   if (projectConfig) {
@@ -191,7 +202,7 @@ const validateAndGetUpdateArgs = (
       return projectConfig;
     }
     logMessage(
-      'Project file not valid, please delete and provide project name and project directory to recreate a new deployment file',
+      'Project file not valid, please delete and provide project name and project directory to recreate a new deployment file'
     );
     throw new Error('Malformed project file');
   }
@@ -211,7 +222,7 @@ const deleteDeploymentConfig = (config: CloudConfig) => {
 const saveDeploymentConfig = (
   projectLocation: string,
   uploadProjectResponse: Page,
-  config: CloudConfig,
+  config: CloudConfig
 ) => {
   const projectConfigLocation = config.PAGE_CONFIG_LOCATION
     ? path.join(config.PAGE_CONFIG_LOCATION)
@@ -225,7 +236,7 @@ const saveDeploymentConfig = (
   }
   fs.writeFileSync(
     projectConfigLocation,
-    JSON.stringify({ projectLocation, ...uploadProjectResponse }),
+    JSON.stringify({ projectLocation, ...uploadProjectResponse })
   );
 };
 
@@ -253,33 +264,30 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
       if (!serverName) {
         throw new Error('Please provide a valid server name');
       }
-      if (!serverName.match(
-        /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/gm,
-      )) {
-        throw new Error('Name can only contain numbers and lowercase characters');
+      if (
+        !serverName.match(
+          /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/gm
+        )
+      ) {
+        throw new Error(
+          'Name can only contain numbers and lowercase characters'
+        );
       }
       switch (commandVerb) {
         case SERVERS_COMMANDS.GET:
           const loadedServer = await client.server?.get({
             serverName,
           });
-          logMessage(
-            'Loaded server', loadedServer,
-          );
+          logMessage('Loaded server', loadedServer);
           break;
         case SERVERS_COMMANDS.CREATE:
-          logMessage(
-            'Creating a new server...', serverName,
-          );
+          logMessage('Creating a new server...', serverName);
           const server = await client.server?.create({
             serverName,
             hrtfEnabled: cliConfig.HRTF,
             isDevelop: cliConfig.DEVELOP,
           });
-          logMessage(
-            'Created new server',
-            server,
-          );
+          logMessage('Created new server', server);
           break;
         case SERVERS_COMMANDS.START:
           await client.server?.start(serverName);
@@ -300,12 +308,12 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           const servers = await client.server?.list();
           logMessage('Found servers');
           console.log(
-            `SERVER_NAME - PACKAGE_NAME - CLI_ENABLED - HRTF_ENABLED`,
+            `SERVER_NAME - PACKAGE_NAME - CLI_ENABLED - HRTF_ENABLED`
           );
           servers?.map((server: CloudServer) =>
             console.log(
-              `${server.serverName} - ${server.packageName} - ${server.cli} - ${server.hrtfAudio}`,
-            ),
+              `${server.serverName} - ${server.packageName} - ${server.cli} - ${server.hrtfAudio}`
+            )
           );
           break;
         case SERVERS_COMMANDS.UPDATE:
@@ -319,10 +327,10 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
         case PAGES_COMMANDS.GET:
           const getProjectSettings = validateAndGetUpdateArgs(
             commandArguments,
-            cliConfig,
+            cliConfig
           );
           const getProjectResponse = await client.page?.get(
-            getProjectSettings.projectName,
+            getProjectSettings.projectName
           );
           logMessage('Found project');
           logMessage(getProjectResponse);
@@ -330,44 +338,45 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
         case PAGES_COMMANDS.CREATE:
           const createProjectSettings = validateAndGetCreateArgs(
             commandArguments,
-            cliConfig,
+            cliConfig
           );
           const createProjectResponse = await client.page?.create(
             createProjectSettings.projectLocation,
             createProjectSettings.projectName,
             createProjectSettings.isPublic,
-            createProjectSettings.withThreads,
+            createProjectSettings.withThreads
           );
           saveDeploymentConfig(
             createProjectSettings.projectLocation,
             createProjectResponse as Page,
-            cliConfig,
+            cliConfig
           );
           logMessage(
-            `Project files successfully uploaded and the domain has been created.`,
+            `Project files successfully uploaded and the domain has been created.`
           );
           logMessage(createProjectResponse);
           break;
         case PAGES_COMMANDS.DELETE:
           const projectName = commandArguments[0];
 
-          const toDelete = cliConfig.FORCE || await new Promise((resolve) => {
-            readLineInterface.question(
-              'Are you sure that you want to delete the project with the full name ' +
-              projectName +
-              '?\n Please confirm by re-typing the projects name and submit with pressing enter:\n',
-              async (projectName) => {
-                if (
-                  projectName !==
-                  projectName.replace(/(\r\n|\n|\r)/gm, '')
-                ) {
-                  return resolve(false);
-                } else {
-                  return resolve(true);
+          const toDelete =
+            cliConfig.FORCE ||
+            (await new Promise((resolve) => {
+              readLineInterface.question(
+                'Are you sure that you want to delete the project with the full name ' +
+                  projectName +
+                  '?\n Please confirm by re-typing the projects name and submit with pressing enter:\n',
+                async (projectName) => {
+                  if (
+                    projectName !== projectName.replace(/(\r\n|\n|\r)/gm, '')
+                  ) {
+                    return resolve(false);
+                  } else {
+                    return resolve(true);
+                  }
                 }
-              },
-            );
-          });
+              );
+            }));
 
           if (!toDelete) {
             console.log(projectName);
@@ -379,27 +388,27 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           await deleteDeploymentConfig(cliConfig);
 
           logMessage(
-            `Successfully deleted domain and files for ${projectName}`,
+            `Successfully deleted domain and files for ${projectName}`
           );
 
           break;
         case PAGES_COMMANDS.UPDATE:
           const updateProjectSettings = validateAndGetUpdateArgs(
             commandArguments,
-            cliConfig,
+            cliConfig
           );
           const updateProjectResponse = await client.page?.update(
             updateProjectSettings.projectLocation,
             updateProjectSettings.projectName,
             updateProjectSettings.isPublic,
-            updateProjectSettings.withThreads,
+            updateProjectSettings.withThreads
           );
 
           if (!cliConfig.SKIP_CONFIG_UPDATE) {
             saveDeploymentConfig(
               updateProjectSettings.projectLocation,
               updateProjectResponse as Page,
-              cliConfig,
+              cliConfig
             );
           }
 
@@ -409,28 +418,36 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           logMessage('found projects');
           pages?.map((page: Page) =>
             console.log(
-              `${page.projectName} - ${page.accessType} - ${page.projectDomain} - ${page.fullProjectUrl}`,
-            ),
+              `${page.projectName} - ${page.accessType} - ${page.projectDomain} - ${page.fullProjectUrl}`
+            )
           );
           break;
         case PAGES_COMMANDS.ADD_API:
           if (!pageName) {
-            throw Error('no page name provided as third argument, wl-cloud page add-api <pagename> <apiname> <apipath>');
+            throw Error(
+              'no page name provided as third argument, wl-cloud page add-api <pagename> <apiname> <apipath>'
+            );
           }
           if (!apiName) {
-            throw Error('no apiName provided as fourth argument, wl-cloud page add-api <pagename> <apiname> <apipath>');
+            throw Error(
+              'no apiName provided as fourth argument, wl-cloud page add-api <pagename> <apiname> <apipath>'
+            );
           }
           if (!apiPath) {
-            throw Error('no apiPath provided as fifth argument, wl-cloud page add-api <pagename> <apiname> <apipath>');
+            throw Error(
+              'no apiPath provided as fifth argument, wl-cloud page add-api <pagename> <apiname> <apipath>'
+            );
           }
           const validPath = /^[a-z](([a-z]|\d)-?([a-z]|\d)?){0,20}[a-z]/gm.test(
-            apiPath,
+            apiPath
           );
           if (!validPath) {
-            throw new Error('api path can ony be /^[a-z](([a-z]|\\d)-?([a-z]|\\d)?){0,20}[a-z]');
+            throw new Error(
+              'api path can ony be /^[a-z](([a-z]|\\d)-?([a-z]|\\d)?){0,20}[a-z]'
+            );
           }
           logMessage('adding api routing', pageName, apiName, apiPath);
-          const intialPageState = await (client.page?.get(pageName));
+          const intialPageState = await client.page?.get(pageName);
           if (!intialPageState) {
             throw new Error('could not find desired page');
           }
@@ -446,14 +463,17 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           logMessage('added new api routing to page', newState);
           break;
         case PAGES_COMMANDS.DELETE_API:
-
           if (!pageName) {
-            throw Error('no page name provided as third argument, wl-cloud page delete-api <pagename> <apiname> <apipath>');
+            throw Error(
+              'no page name provided as third argument, wl-cloud page delete-api <pagename> <apiname> <apipath>'
+            );
           }
           if (!apiName) {
-            throw Error('no apiName provided as fourth argument, wl-cloud page delete-api <pagename> <apiname> <apipath>');
+            throw Error(
+              'no apiName provided as fourth argument, wl-cloud page delete-api <pagename> <apiname> <apipath>'
+            );
           }
-          const intialPageState2 = await (client.page?.get(pageName));
+          const intialPageState2 = await client.page?.get(pageName);
           if (!intialPageState2) {
             throw new Error('could not find desired page');
           }
@@ -463,7 +483,9 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
               intialPageState2.apiNames.splice(existingApi, 1);
               intialPageState2.apiPaths.splice(existingApi, 1);
             } else {
-              logMessage('Nothing to do, page does not contain any apis linked');
+              logMessage(
+                'Nothing to do, page does not contain any apis linked'
+              );
               break;
             }
           } else {
@@ -478,55 +500,64 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
     case CLI_RESOURCES.SUBSCRIPTION:
       switch (commandVerb) {
         case SUBSCRIPTION_COMMAND.LIST:
-
           const subs = await client.subscription?.list();
-          const foundSubs = subs?.map(sub => ({
+          const foundSubs = subs?.map((sub) => ({
             ...sub,
             type: SUBSCRIPTION_TYPE_STRING_MAPPING[sub.type],
           }));
-          logMessage(
-            'Found subscriptions:',
-            foundSubs,
-          );
+          logMessage('Found subscriptions:', foundSubs);
           break;
       }
       break;
     case CLI_RESOURCES.API:
-      const [apiName2, port, image, envVars, dockerConfigBase64] = commandArguments;
+      const [apiName2, port, image, envVars, dockerConfigBase64] =
+        commandArguments;
       switch (commandVerb) {
         case API_COMMANDS.LIST:
           const foundApis = await client.api?.list();
           logMessage(
             'Found apis:',
-            foundApis?.map(api => ({
+            foundApis?.map((api) => ({
               ...api,
               env: JSON.stringify(api.env),
-            })));
+            }))
+          );
+          break;
+        case API_COMMANDS.GET:
+          const foundApi = await client.api?.get(apiName2);
+          logMessage('Found api:', foundApi);
           break;
         case API_COMMANDS.CREATE:
           if (!apiName2) {
-            throw new Error('please provide apiName: wl-cloud api create <apiname> <apiport> <image>  <envVars-optional> <docvkerConfigBase64-optional>');
+            throw new Error(
+              'please provide apiName: wl-cloud api create <apiname> <apiport> <image>  <envVars-optional> <docvkerConfigBase64-optional>'
+            );
           }
           if (!port) {
-            throw new Error('please provide port: wl-cloud api create <apiname> <apiport> <image>  <envVars-optional> <docvkerConfigBase64-optional>');
+            throw new Error(
+              'please provide port: wl-cloud api create <apiname> <apiport> <image>  <envVars-optional> <docvkerConfigBase64-optional>'
+            );
           }
           if (!image) {
-            throw new Error('please provide image: wl-cloud api create <apiname> <apiport> <image>  <envVars-optional> <docvkerConfigBase64-optional>');
+            throw new Error(
+              'please provide image: wl-cloud api create <apiname> <apiport> <image>  <envVars-optional> <docvkerConfigBase64-optional>'
+            );
           }
 
           const actualEnvVars = envVars.includes('=') ? envVars : '';
           const envVarsParsed: { [k: string]: string } = {};
           if (actualEnvVars) {
-            actualEnvVars.split(',').forEach(envVar => {
+            actualEnvVars.split(',').forEach((envVar) => {
               const [key, value] = envVar.split('=');
               envVarsParsed[key] = value;
             });
-
           }
           const createdApi = await client.api?.create({
             name: apiName2,
             port: Number(port),
-            dockerConfigBase64: envVars.includes('=') ? dockerConfigBase64 : envVars || '',
+            dockerConfigBase64: envVars.includes('=')
+              ? dockerConfigBase64 || ''
+              : envVars || '',
             env: envVarsParsed,
             image,
           });
@@ -534,10 +565,82 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           break;
         case API_COMMANDS.DELETE:
           if (!apiName2) {
-            throw new Error('please provide apiName: wl-cloud api delete <apiname> <apiport> <image> <docvkerConfigBase64> envVar1=Value,envVar2=value2');
+            throw new Error(
+              'please provide apiName: wl-cloud api delete <apiname> <apiport> <image> <docvkerConfigBase64> envVar1=Value,envVar2=value2'
+            );
           }
           await client.api?.delete(apiName2);
           logMessage('deleted existing api deployment', apiName2);
+          break;
+        case API_COMMANDS.UPDATE:
+          const [apiName3, key, value] = commandArguments;
+
+          const validKeys = ['env', 'port', 'image', 'dockerConfigBase64'];
+
+          let actualValue;
+          switch (key) {
+            case 'env':
+              if (value && value.includes('=')) {
+                const envVarsParsed: { [k: string]: string } = {};
+                value.split(',').forEach((envVar) => {
+                  const [envKey, envValue] = envVar.split('=');
+                  envVarsParsed[envKey] = envValue;
+                });
+                actualValue = envVarsParsed;
+              } else if (!value) {
+                actualValue = {};
+                logMessage('No env vars provided, removing existing one.');
+              } else {
+                throw new Error(
+                  `Provided env vars are invalid, expected format is key1=value1,key2=value2...`
+                );
+              }
+              break;
+            case 'port':
+              if (!value) {
+                throw new Error(
+                  `Provided port is empty, expected port value is a number between 1-65535`
+                );
+              }
+              try {
+                const portNumber = parseInt(value, 10);
+                if (portNumber < 1 && portNumber > 65535) {
+                  throw Error('invalid port value');
+                }
+                actualValue = portNumber;
+              } catch (error) {
+                throw new Error(
+                  `Provided port is not valid, expected port value is a number between 1-65535`
+                );
+              }
+              break;
+            case 'image':
+              if (!value) {
+                throw new Error(`Provided image name is empty, cannot proceed`);
+              }
+              actualValue = value;
+              break;
+            case 'dockerConfig64':
+              if (!value) {
+                throw new Error(
+                  `Provided dockerConfig64 name is empty, cannot proceed`
+                );
+              }
+              actualValue = value;
+              break;
+            default:
+              throw new Error(
+                `key {${key}} is not known, possible keys for changing their values: ${validKeys}`
+              );
+          }
+          const updateData = {
+            name: apiName3,
+          };
+          // @ts-ignore
+          updateData[key] = actualValue;
+          console.log(commandArguments, updateData);
+          const updatedApi = await client.api?.update(updateData);
+          logMessage('updated new api deployment', updatedApi);
           break;
       }
       break;
@@ -552,7 +655,7 @@ const evalCommandWrapped = async (promise: Promise<void>) => {
     await promise;
   } catch (error) {
     logMessage('Error:', (error as Error).message);
-    await new Promise(resolve => setTimeout(resolve, 400));
+    await new Promise((resolve) => setTimeout(resolve, 400));
     throw error;
   }
 };

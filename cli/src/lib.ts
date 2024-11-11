@@ -20,7 +20,7 @@ const defaultConfig: Partial<CloudConfig> = {
   PAGE_ACCESS: process.env.ACCESS,
   WLE_CREDENTIALS_LOCATION: path.join(
     process.env.AUTH_JSON_LOCATION ||
-    path.join(process.cwd(), 'wle-apitoken.json'),
+      path.join(process.cwd(), 'wle-apitoken.json')
   ),
 };
 
@@ -41,7 +41,10 @@ export class CloudClient {
   api?: ApisClient;
   authToken: string;
 
-  constructor(cloudConfig: Partial<CloudConfig>, enabledResource?: CLI_RESOURCES) {
+  constructor(
+    cloudConfig: Partial<CloudConfig>,
+    enabledResource?: CLI_RESOURCES
+  ) {
     this.config = merge({}, defaultConfig, cloudConfig);
     this.authToken = getAndValidateAuthToken(this.config);
     debugMessage('initialized CloudClient with config', this.config);
@@ -86,7 +89,7 @@ export class CloudClient {
       return true;
     } else {
       logMessage(
-        'Validation of the auth token failed, please make sure it exists and is not expired!',
+        'Validation of the auth token failed, please make sure it exists and is not expired!'
       );
       throw Error('provided auth token is not valid!');
     }
