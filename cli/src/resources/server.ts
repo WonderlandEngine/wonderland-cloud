@@ -25,10 +25,9 @@ const defaultConfig: Partial<ServerConfig> = {
   IS_LOCAL_SERVER: process.env.IS_LOCAL_SERVER === 'true',
   WLE_CREDENTIALS_LOCATION: path.join(
     process.env.AUTH_JSON_LOCATION ||
-    path.join(process.cwd(), 'wle-apitoken.json'),
+      path.join(process.cwd(), 'wle-apitoken.json')
   ),
 };
-
 
 export interface CloudServer {
   maxPlayers: number;
@@ -77,7 +76,7 @@ export class ServerClient extends EventEmitter {
 
     this.customPackageJson = require(path.join(
       this.workDirectory,
-      'package.json',
+      'package.json'
     ));
     // we need this for supporting namespaced packages
     this.packedPackageName = `${this.customPackageJson.name
@@ -127,14 +126,13 @@ export class ServerClient extends EventEmitter {
       if (attempt === maxAttempts) {
         return reject(new Error('server did not start in time!'));
       }
-      const currentWaitTime = (attempt) * 1250;
+      const currentWaitTime = attempt * 1250;
       await asyncTimeout(currentWaitTime);
       const client = new ws(this.wsUrl);
 
       const closeAndCleanup = () => {
         client.removeAllListeners();
-        client.on('error', (error) => {
-        });
+        client.on('error', (error) => {});
         setTimeout(() => {
           client.removeAllListeners();
         }, 5000);
@@ -146,11 +144,15 @@ export class ServerClient extends EventEmitter {
       });
       client.on('error', async (err) => {
         closeAndCleanup();
-        this.#waitForWSClientOpen(attempt += 1, maxAttempts).then(resolve).catch(reject);
+        this.#waitForWSClientOpen((attempt += 1), maxAttempts)
+          .then(resolve)
+          .catch(reject);
       });
       client.on('close', async (code, reason) => {
         closeAndCleanup();
-        this.#waitForWSClientOpen(attempt += 1, maxAttempts).then(resolve).catch(reject);
+        this.#waitForWSClientOpen((attempt += 1), maxAttempts)
+          .then(resolve)
+          .catch(reject);
       });
     });
   }
@@ -166,7 +168,7 @@ export class ServerClient extends EventEmitter {
         headers: {
           'content-type': 'application/json',
         },
-      },
+      }
     );
     if (response.status === 200) {
       logMessage('Server started!');
@@ -206,16 +208,16 @@ export class ServerClient extends EventEmitter {
             reject(err);
           };
           this.wsConFinData.resolver = ({
-                                          code,
-                                          reason,
-                                        }: {
+            code,
+            reason,
+          }: {
             code: number;
             reason: string;
           }) => {
             this.#cleanupWsConFinData();
             resolve({ code, reason });
           };
-        },
+        }
       );
       this.wsConFinData.promise = promise;
 
@@ -232,7 +234,10 @@ export class ServerClient extends EventEmitter {
       // let's await the result of out WS connection
       return promise;
     } catch (error) {
-      logMessage('Failed to create debug server connection', (error as Error).cause || (error as Error).message);
+      logMessage(
+        'Failed to create debug server connection',
+        (error as Error).cause || (error as Error).message
+      );
     }
   }
 
@@ -252,7 +257,7 @@ export class ServerClient extends EventEmitter {
       client.send(
         JSON.stringify({
           auth: this.authToken,
-        }),
+        })
       );
     });
     client.on('error', async (err) => {
@@ -272,7 +277,7 @@ export class ServerClient extends EventEmitter {
         logMessage(
           'Websocket client abnormally closed, reconnecting...',
           code,
-          reason.toString(),
+          reason.toString()
         );
         await asyncTimeout(1000);
         clearInterval(this.pingInterval);
@@ -313,12 +318,15 @@ export class ServerClient extends EventEmitter {
         this.fileChangePromise = this.#processFileChange();
         await this.fileChangePromise;
       } catch (error) {
-        logMessage('Could not handle file change!', (error as Error).cause || (error as Error).message);
+        logMessage(
+          'Could not handle file change!',
+          (error as Error).cause || (error as Error).message
+        );
       }
       delete this.fileChangePromise;
     } else {
       debugMessage(
-        'File change operation already in progress skipping current file change',
+        'File change operation already in progress skipping current file change'
       );
     }
   }
@@ -332,13 +340,16 @@ export class ServerClient extends EventEmitter {
         },
         (error) => {
           if (error) {
-            logMessage('Failed to pack files', (error as Error).cause || (error as Error).message);
+            logMessage(
+              'Failed to pack files',
+              (error as Error).cause || (error as Error).message
+            );
             return reject(error);
           }
           logMessage('Finished packing files!');
 
           return resolve(null);
-        },
+        }
       );
     });
   }
@@ -356,7 +367,7 @@ export class ServerClient extends EventEmitter {
           authorization: this.authToken,
           'content-type': 'application/json',
         },
-      },
+      }
     );
     const serverData = await response.json();
     if (response.status < 400) {
@@ -380,7 +391,7 @@ export class ServerClient extends EventEmitter {
           authorization: this.authToken,
           'content-type': 'application/json',
         },
-      },
+      }
     );
     const serverData = await response.json();
     if (response.status < 400) {
@@ -391,12 +402,17 @@ export class ServerClient extends EventEmitter {
     }
   }
 
-
-  async #uploadPackageAndServer({ update, serverName }: { update: boolean, serverName?: string }) {
+  async #uploadPackageAndServer({
+    update,
+    serverName,
+  }: {
+    update: boolean;
+    serverName?: string;
+  }) {
     logMessage('Uploading server package...');
     const formData = new FormData();
     const file = fs.readFileSync(
-      path.join(this.workDirectory, this.packedPackageName),
+      path.join(this.workDirectory, this.packedPackageName)
     );
 
     formData.append('file', new Blob([file]), this.packedPackageName);
@@ -413,22 +429,22 @@ export class ServerClient extends EventEmitter {
         headers: {
           authorization: this.authToken,
         },
-      },
+      }
     );
     const serverData = await response.json();
     if (response.status < 400) {
       logMessage(
         'Successfully uploaded package' + update ? 'and updated server' : '',
-        serverData,
+        serverData
       );
       return serverData;
     } else {
       logMessage(
         'failed to upload package file' + update ? 'and updated server' : '',
-        serverData,
+        serverData
       );
       throw Error(
-        'Failed to upload and recreate server' + JSON.stringify(serverData),
+        'Failed to upload and recreate server' + JSON.stringify(serverData)
       );
     }
   }
@@ -453,7 +469,10 @@ export class ServerClient extends EventEmitter {
         throw Error(JSON.stringify(listResponse));
       }
     } catch (error) {
-      logMessage('Failed to list servers', (error as Error).cause || (error as Error).message);
+      logMessage(
+        'Failed to list servers',
+        (error as Error).cause || (error as Error).message
+      );
       throw error;
     }
   }
@@ -464,15 +483,13 @@ export class ServerClient extends EventEmitter {
   async get({ serverName }: { serverName: string }): Promise<CloudServer> {
     try {
       const response = await fetch(
-        `${this.config.COMMANDER_URL}/api/servers/${
-          serverName
-        }`,
+        `${this.config.COMMANDER_URL}/api/servers/${serverName}`,
         {
           method: 'GET',
           headers: {
             authorization: this.authToken,
           },
-        },
+        }
       );
       if (response.status < 400) {
         return await response.json();
@@ -482,7 +499,10 @@ export class ServerClient extends EventEmitter {
         throw Error(JSON.stringify(deleteResponse));
       }
     } catch (error) {
-      logMessage('Failed to delete server', (error as Error).cause || (error as Error).message);
+      logMessage(
+        'Failed to delete server',
+        (error as Error).cause || (error as Error).message
+      );
       throw error;
     }
   }
@@ -495,15 +515,13 @@ export class ServerClient extends EventEmitter {
   async delete(serverName?: string) {
     try {
       const response = await fetch(
-        `${this.config.COMMANDER_URL}/api/servers/${
-          serverName
-        }`,
+        `${this.config.COMMANDER_URL}/api/servers/${serverName}`,
         {
           method: 'DELETE',
           headers: {
             authorization: this.authToken,
           },
-        },
+        }
       );
       if (response.status < 400) {
         logMessage('Deleted server', this.serverName);
@@ -514,7 +532,10 @@ export class ServerClient extends EventEmitter {
         throw Error(JSON.stringify(deleteResponse));
       }
     } catch (error) {
-      logMessage('Failed to delete server', (error as Error).cause || (error as Error).message);
+      logMessage(
+        'Failed to delete server',
+        (error as Error).cause || (error as Error).message
+      );
       throw error;
     }
   }
@@ -529,22 +550,29 @@ export class ServerClient extends EventEmitter {
    * check if we have a working subscription
    * if yes use the first working sub for deployment
    */
-  async create({ serverName, hrtfEnabled, isDevelop }: {
-    serverName: string,
-    hrtfEnabled: boolean,
-    isDevelop: boolean
+  async create({
+    serverName,
+    hrtfEnabled,
+    isDevelop,
+  }: {
+    serverName: string;
+    hrtfEnabled: boolean;
+    isDevelop: boolean;
   }): Promise<CloudServer> {
-
     const subscriptions = await this.subscriptionClient.list();
 
-
-    const validSubExists = subscriptions.find(sub =>
-      sub.type === SUBSCRIPTION_TYPE.TRIAL && isDevelop ? sub.availableCount.debug > 0 :
-        sub.type === (hrtfEnabled ? SUBSCRIPTION_TYPE.HRTF : SUBSCRIPTION_TYPE.NORMAL) &&
-        sub.availableCount[isDevelop ? 'debug' : 'production'] > 0);
+    const validSubExists = subscriptions.find((sub) =>
+      sub.type === SUBSCRIPTION_TYPE.TRIAL && isDevelop
+        ? sub.availableCount.debug > 0
+        : sub.type ===
+            (hrtfEnabled ? SUBSCRIPTION_TYPE.HRTF : SUBSCRIPTION_TYPE.NORMAL) &&
+          sub.availableCount[isDevelop ? 'debug' : 'production'] > 0
+    );
 
     if (!validSubExists) {
-      throw new Error('could not find a valid subscription for creating a new server');
+      throw new Error(
+        'could not find a valid subscription for creating a new server'
+      );
     }
 
     let packageName;
@@ -552,7 +580,10 @@ export class ServerClient extends EventEmitter {
       // TODO check if this applies to create a server
       await this.#packFiles();
 
-      const { packageName: packageN } = await this.#uploadPackageAndServer({ update: false, serverName });
+      const { packageName: packageN } = await this.#uploadPackageAndServer({
+        update: false,
+        serverName,
+      });
       console.log({
         name: serverName,
         packageName: packageN,
@@ -564,27 +595,28 @@ export class ServerClient extends EventEmitter {
       packageName = packageN;
     }
 
-
-    const createServerResult = await fetch(this.config.COMMANDER_URL + '/api/servers', {
-      method: 'POST', // *GET, POST, PUT, DELETE, etc.
-      redirect: 'follow', // manual, *follow, error
-      referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-      body: JSON.stringify({
-        name: serverName,
-        packageName,
-        fileName: this.packedPackageName,
-        cli: isDevelop,
-        hrtfAudio: hrtfEnabled,
-        subscriptionId: validSubExists.id,
-      }),
-      headers: {
-        authorization: this.authToken,
-        'Content-Type': 'application/json',
-      },
-    });
+    const createServerResult = await fetch(
+      this.config.COMMANDER_URL + '/api/servers',
+      {
+        method: 'POST', // *GET, POST, PUT, DELETE, etc.
+        redirect: 'follow', // manual, *follow, error
+        referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+        body: JSON.stringify({
+          name: serverName,
+          packageName,
+          fileName: this.packedPackageName,
+          cli: isDevelop,
+          hrtfAudio: hrtfEnabled,
+          subscriptionId: validSubExists.id,
+        }),
+        headers: {
+          authorization: this.authToken,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
     const createData = await createServerResult.json();
     if (createServerResult.status < 400) {
-
       logMessage('Created a new server', createData);
 
       if (!isDevelop) {
@@ -597,7 +629,6 @@ export class ServerClient extends EventEmitter {
       logMessage('Create server error', createData);
       throw new Error('Failed to create a new server');
     }
-
   }
 
   /**
@@ -610,7 +641,10 @@ export class ServerClient extends EventEmitter {
       this.#extractAndValidateServerUrl(serverName);
       await this.#sendStartServerSignal();
     } catch (error) {
-      logMessage('Failed to start server', (error as Error).cause || (error as Error).message);
+      logMessage(
+        'Failed to start server',
+        (error as Error).cause || (error as Error).message
+      );
       throw error;
     }
   }
@@ -629,7 +663,10 @@ export class ServerClient extends EventEmitter {
       await this.#testDeployment();
       logMessage('New server deployment is up and running!');
     } catch (error) {
-      logMessage('Failed to update server', (error as Error).cause || (error as Error).message);
+      logMessage(
+        'Failed to update server',
+        (error as Error).cause || (error as Error).message
+      );
       throw error;
     }
   }
@@ -638,7 +675,7 @@ export class ServerClient extends EventEmitter {
     const formData = new FormData();
 
     const file = fs.readFileSync(
-      path.join(this.workDirectory, this.packedPackageName),
+      path.join(this.workDirectory, this.packedPackageName)
     );
 
     formData.append('file', new Blob([file]), this.packedPackageName);

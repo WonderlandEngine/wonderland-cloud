@@ -17,7 +17,10 @@ export interface Operation {
  * the library tries to find a wle-apitoken.json in the current work directory
  */
 export type OperationsConfig = PartialBy<
-  Pick<CloudConfig, 'WLE_CREDENTIALS' | 'COMMANDER_URL' | 'WLE_CREDENTIALS_LOCATION'>,
+  Pick<
+    CloudConfig,
+    'WLE_CREDENTIALS' | 'COMMANDER_URL' | 'WLE_CREDENTIALS_LOCATION'
+  >,
   'WLE_CREDENTIALS' | 'WLE_CREDENTIALS_LOCATION'
 >;
 

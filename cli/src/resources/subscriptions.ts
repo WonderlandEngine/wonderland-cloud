@@ -9,7 +9,7 @@ export enum SUBSCRIPTION_TYPE {
   NORMAL = 0,
   HRTF = 1,
   TRIAL = 2,
-  PAGES_APIS=4,
+  PAGES_APIS = 4,
 }
 
 interface SubscriptionsMap {
@@ -20,7 +20,7 @@ const defaultConfig: Partial<SubscriptionConfig> = {
   COMMANDER_URL: process.env.COMMANDER_URL || 'https://cloud.wonderland.dev',
   WLE_CREDENTIALS_LOCATION: path.join(
     process.env.AUTH_JSON_LOCATION ||
-    path.join(process.cwd(), 'wle-apitoken.json'),
+      path.join(process.cwd(), 'wle-apitoken.json')
   ),
 };
 
@@ -35,7 +35,7 @@ export const SUBSCRIPTION_TYPE_STRING_MAPPING: SubscriptionsMap = {
   1: 'Spatial Audio',
   2: 'Trial',
   3: 'Pages basic',
-  4: 'Apis'
+  4: 'Apis',
 };
 
 export interface Subscription {
@@ -67,9 +67,7 @@ export interface SubscriptionFe
   };
 }
 
-
 export class SubscriptionClient {
-
   config: Partial<SubscriptionConfig>;
   authToken: string;
 
@@ -83,9 +81,7 @@ export class SubscriptionClient {
    * Lists your current subscriptions and subscriptions shared with you via teams
    */
   async list(): Promise<SubscriptionFe[]> {
-    logMessage(
-      'Listing subscriptions...',
-    );
+    logMessage('Listing subscriptions...');
     const response = await fetch(
       `${this.config.COMMANDER_URL}/api/subscriptions`,
       {
@@ -93,7 +89,7 @@ export class SubscriptionClient {
         headers: {
           authorization: this.authToken,
         },
-      },
+      }
     );
     const serverData = await response.json();
     if (response.status < 400) {
