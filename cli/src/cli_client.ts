@@ -555,6 +555,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           const createdApi = await client.api?.create({
             name: apiName2,
             port: Number(port),
+
             dockerConfigBase64: envVars.includes('=')
               ? dockerConfigBase64 || ''
               : envVars || '',
