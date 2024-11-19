@@ -287,7 +287,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             hrtfEnabled: cliConfig.HRTF,
             isDevelop: cliConfig.DEVELOP,
           });
-          logMessage('Created new server', server);
+          logMessage('Created new server', server?.serverName);
           break;
         case SERVERS_COMMANDS.START:
           await client.server?.start(serverName);
