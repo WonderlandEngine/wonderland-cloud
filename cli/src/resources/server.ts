@@ -8,6 +8,7 @@ import path from 'path';
 import merge from 'lodash.merge';
 import { SUBSCRIPTION_TYPE, SubscriptionClient } from './subscriptions';
 import { EventEmitter } from 'events';
+import { OperationsClient } from './operations';
 
 export interface ServerConfig {
   WORK_DIR: string;
@@ -65,6 +66,8 @@ export class ServerClient extends EventEmitter {
     resolver?: ({ code, reason }: { code: number; reason: string }) => void;
   };
   subscriptionClient: SubscriptionClient;
+  operationsClient: OperationsClient;
+
 
   constructor(cloudConfig: Partial<ServerConfig>) {
     super();
@@ -84,6 +87,7 @@ export class ServerClient extends EventEmitter {
       .replaceAll('/', '-')}-${this.customPackageJson.version}.tgz`;
     this.wsConFinData = {};
     this.subscriptionClient = new SubscriptionClient(cloudConfig);
+    this.operationsClient = new OperationsClient(cloudConfig);
   }
 
   #extractAndValidateServerUrl(serverName: string) {
@@ -417,8 +421,13 @@ export class ServerClient extends EventEmitter {
 
     formData.append('file', new Blob([file]), this.packedPackageName);
     formData.append('serverName', serverName || this.serverName);
+
+    const headers: { [key: string]: any } = {
+      authorization: this.authToken,
+    };
     if (update) {
       formData.append('upgradeServer', 'true');
+      headers['use-server-jobs'] = 'true';
     }
 
     const response = await fetch(
@@ -426,12 +435,18 @@ export class ServerClient extends EventEmitter {
       {
         method: 'POST',
         body: formData,
-        headers: {
-          authorization: this.authToken,
-        },
+        headers,
       }
     );
+
     const serverData = await response.json();
+    if (update) {
+      const server =
+        await this.operationsClient.waitUntilJobHasFinished<CloudServer>(
+          serverData.jobId
+        );
+      return server;
+    }
     if (response.status < 400) {
       logMessage(
         'Successfully uploaded package' + update ? 'and updated server' : '',
@@ -520,10 +535,15 @@ export class ServerClient extends EventEmitter {
           method: 'DELETE',
           headers: {
             authorization: this.authToken,
+            'use-server-jobs': 'true',
           },
         }
       );
       if (response.status < 400) {
+        const deleteJob = await response.json();
+          await this.operationsClient.waitUntilJobHasFinished<CloudServer>(
+            deleteJob.jobId
+          );
         logMessage('Deleted server', this.serverName);
         return true;
       } else {
@@ -595,7 +615,7 @@ export class ServerClient extends EventEmitter {
       packageName = packageN;
     }
 
-    const createServerResult = await fetch(
+    const createServerJob = await fetch(
       this.config.COMMANDER_URL + '/api/servers',
       {
         method: 'POST', // *GET, POST, PUT, DELETE, etc.
@@ -612,19 +632,23 @@ export class ServerClient extends EventEmitter {
         headers: {
           authorization: this.authToken,
           'Content-Type': 'application/json',
+          'use-server-jobs': 'true',
         },
       }
     );
-    const createData = await createServerResult.json();
-    if (createServerResult.status < 400) {
-      logMessage('Created a new server', createData);
-
+    const createData = await createServerJob.json();
+    if (createServerJob.status < 400) {
+      logMessage('Created a new server, waiting for it to start', createData);
+      const server =
+        await this.operationsClient.waitUntilJobHasFinished<CloudServer>(
+          createData.jobId
+        );
       if (!isDevelop) {
         this.serverName = serverName;
         await this.#validateDeployment();
         await this.#testDeployment();
       }
-      return createData;
+      return server;
     } else {
       logMessage('Create server error', createData);
       throw new Error('Failed to create a new server');

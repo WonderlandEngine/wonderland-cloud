@@ -287,12 +287,13 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             hrtfEnabled: cliConfig.HRTF,
             isDevelop: cliConfig.DEVELOP,
           });
-          logMessage('Created new server', server);
+          logMessage('Created new server', server?.serverName);
           break;
         case SERVERS_COMMANDS.START:
           await client.server?.start(serverName);
           break;
         case SERVERS_COMMANDS.DELETE:
+          logMessage('Deleting server: ', server?.serverName);
           await client.server?.delete(serverName);
           break;
         case SERVERS_COMMANDS.DEBUG:
@@ -307,11 +308,11 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
         case SERVERS_COMMANDS.LIST:
           const servers = await client.server?.list();
           logMessage('Found servers');
-          console.log(
+          logMessage(
             `SERVER_NAME - PACKAGE_NAME - CLI_ENABLED - HRTF_ENABLED`
           );
           servers?.map((server: CloudServer) =>
-            console.log(
+            logMessage(
               `${server.serverName} - ${server.packageName} - ${server.cli} - ${server.hrtfAudio}`
             )
           );
@@ -379,8 +380,8 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             }));
 
           if (!toDelete) {
-            console.log(projectName);
-            console.log('Project name mismatch, exiting');
+           logMessage(projectName);
+            logMessage('Project name mismatch, exiting');
             process.exit(1);
           }
 
@@ -417,7 +418,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           const pages = await client.page?.list();
           logMessage('found projects');
           pages?.map((page: Page) =>
-            console.log(
+            logMessage(
               `${page.projectName} - ${page.accessType} - ${page.projectDomain} - ${page.fullProjectUrl}`
             )
           );
@@ -621,10 +622,10 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
               }
               actualValue = value;
               break;
-            case 'dockerConfig64':
+            case 'dockerConfigBase64':
               if (!value) {
                 throw new Error(
-                  `Provided dockerConfig64 name is empty, cannot proceed`
+                  `Provided dockerConfigBase64 name is empty, cannot proceed`
                 );
               }
               actualValue = value;
@@ -639,10 +640,11 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           };
           // @ts-ignore
           updateData[key] = actualValue;
-          console.log(commandArguments, updateData);
           const updatedApi = await client.api?.update(updateData);
           logMessage('updated new api deployment', updatedApi);
           break;
+        default:
+          throw new Error(`Unknown verb ${commandVerb}, available verbs are ${API_COMMANDS}`);
       }
       break;
   }
