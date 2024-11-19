@@ -421,8 +421,13 @@ export class ServerClient extends EventEmitter {
 
     formData.append('file', new Blob([file]), this.packedPackageName);
     formData.append('serverName', serverName || this.serverName);
+
+    const headers: { [key: string]: any } = {
+      authorization: this.authToken,
+    };
     if (update) {
       formData.append('upgradeServer', 'true');
+      headers['use-server-jobs'] = 'true';
     }
 
     const response = await fetch(
@@ -430,12 +435,18 @@ export class ServerClient extends EventEmitter {
       {
         method: 'POST',
         body: formData,
-        headers: {
-          authorization: this.authToken,
-        },
+        headers,
       }
     );
+
     const serverData = await response.json();
+    if (update) {
+      const server =
+        await this.operationsClient.waitUntilJobHasFinished<CloudServer>(
+          serverData.jobId
+        );
+      return server;
+    }
     if (response.status < 400) {
       logMessage(
         'Successfully uploaded package' + update ? 'and updated server' : '',
@@ -524,10 +535,15 @@ export class ServerClient extends EventEmitter {
           method: 'DELETE',
           headers: {
             authorization: this.authToken,
+            'use-server-jobs': 'true',
           },
         }
       );
       if (response.status < 400) {
+        const deleteJob = await response.json();
+          await this.operationsClient.waitUntilJobHasFinished<CloudServer>(
+            deleteJob.jobId
+          );
         logMessage('Deleted server', this.serverName);
         return true;
       } else {
@@ -616,14 +632,17 @@ export class ServerClient extends EventEmitter {
         headers: {
           authorization: this.authToken,
           'Content-Type': 'application/json',
-          'use-server-jobs': 'true'
+          'use-server-jobs': 'true',
         },
       }
     );
     const createData = await createServerJob.json();
     if (createServerJob.status < 400) {
       logMessage('Created a new server, waiting for it to start', createData);
-      const server = await this.operationsClient.waitUntilJobHasFinished<CloudServer>(createData.jobId);
+      const server =
+        await this.operationsClient.waitUntilJobHasFinished<CloudServer>(
+          createData.jobId
+        );
       if (!isDevelop) {
         this.serverName = serverName;
         await this.#validateDeployment();
