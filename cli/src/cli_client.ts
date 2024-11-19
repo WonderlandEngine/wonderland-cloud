@@ -625,7 +625,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             case 'dockerConfigBase64':
               if (!value) {
                 throw new Error(
-                  `Provided dockerConfig64 name is empty, cannot proceed`
+                  `Provided dockerConfigBase64 name is empty, cannot proceed`
                 );
               }
               actualValue = value;
