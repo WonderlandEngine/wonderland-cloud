@@ -467,8 +467,11 @@ export class WonderlandClient {
     this._debugLog('peer connection created!');
     await this.createDataChannel();
     this._debugLog('datachannel created');
-    await this.startNegotiation();
-    if (this.audio) await this.addLocalAudioTracks();
+
+    if (this.audio){
+      await this.startNegotiation();
+      await this.addLocalAudioTracks();
+    }
     return createdObjects;
   }
 
