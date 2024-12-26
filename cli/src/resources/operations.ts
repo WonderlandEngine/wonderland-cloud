@@ -41,7 +41,7 @@ export class OperationsClient {
     let result = await this.get(jobId);
     while (result.isRunning) {
       logMessage('Operation is still running, please wait...');
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       result = await this.get(jobId);
     }
 

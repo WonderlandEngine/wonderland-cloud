@@ -16,6 +16,7 @@ export interface UploadPageResponse {
   jobId: string;
   message: string;
   projectName: string;
+  projectDomain: string;
 }
 
 export interface Page {
@@ -267,6 +268,9 @@ export class PageClient {
     );
     await this.#deleteDeploymentArchive(deploymentArchivePath);
 
+    logMessage(
+      `Creating new page deployment, pageUrl: ${uploadProjectResponse.projectDomain}`
+    );
     await this.operationsClient.waitUntilJobHasFinished(
       uploadProjectResponse.jobId
     );
