@@ -89,6 +89,13 @@ export class MultiUserServer extends EventEmitter {
 
   serverCommandsQueue: { [key: string]: ServerCommandWithTimeout } = {};
 
+  /*
+    set to false to disable audio processing on the server side
+    please note, that you need also to disable audio on the client to make it
+    work
+   */
+  enableAudio = true;
+
   async updateWithTimeout() {
     const maxUpdateDuration = 1000 / this.updatesPerSecond;
     let resolver: (value: void) => void,
