@@ -293,7 +293,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           await client.server?.start(serverName);
           break;
         case SERVERS_COMMANDS.DELETE:
-          logMessage('Deleting server: ', server?.serverName);
+          logMessage('Deleting server: ', serverName);
           await client.server?.delete(serverName);
           break;
         case SERVERS_COMMANDS.DEBUG:
