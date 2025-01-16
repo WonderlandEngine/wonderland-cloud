@@ -55,6 +55,8 @@ export class NetworkConfigurationComponent extends Component {
   audio: boolean = false;
   @property.bool(false)
   debug: boolean = false;
+  @property.bool(false)
+  discord: boolean = false;
   /**
    * Special property to skip sending server start signal,
    * this is only usable for local server development, as
@@ -111,7 +113,8 @@ export class NetworkConfigurationComponent extends Component {
         audioDeviceId: this.inputDeviceId,
         debug: this.debug,
         path: this.serverPath,
-        skipServerStart: this.skipServerStart
+        skipServerStart: this.skipServerStart,
+        discord: this.discord
       })
       .then(this.onSuccessfulConnection.bind(this))
       .catch((e) => {

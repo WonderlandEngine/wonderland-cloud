@@ -12,6 +12,7 @@ export interface WonderlandClientOptions {
   audioDeviceId?: string;
   audio: boolean;
   skipServerStart: boolean;
+  discord: boolean;
 }
 
 enum WSMessageName {
@@ -59,6 +60,7 @@ const WonderlandClientDefaultOptions: WonderlandClientOptions = {
   audioDeviceId: undefined,
   audio: true,
   skipServerStart: false,
+  discord: false,
 };
 
 /**
@@ -97,6 +99,7 @@ export class WonderlandClient {
   skipServerStart: boolean = false;
   isIOS = false;
   webRTCSupported = true;
+  discord = false;
 
   /**
    * Constructor
@@ -118,6 +121,7 @@ export class WonderlandClient {
     this.secure = mergedOptions.secure;
     this.inputDeviceId = mergedOptions.audioDeviceId;
     this.skipServerStart = mergedOptions.skipServerStart;
+    this.discord = mergedOptions.discord;
 
     this.audio = mergedOptions.audio ?? true;
 
@@ -144,10 +148,20 @@ export class WonderlandClient {
     this.createInputOutputControls();
   }
 
-  createWSDataConnection() {
-    const url = `${this.secure ? 'wss' : 'ws'}://${this.host}:${this.port}${
+  getUrl(withData= false){
+    if(this.discord){
+      const base = window.location.href.replace('https', 'wss');
+      return `${base}/.proxy/server/${this.path}/${this.id}${withData?'-ws-data':''}`;
+
+    }
+    return `${this.secure ? 'wss' : 'ws'}://${this.host}:${this.port}${
       this.path
-    }/${this.id}-ws-data`;
+    }/${this.id}${withData?'-ws-data':''}`
+  }
+
+  createWSDataConnection() {
+    const url = this.getUrl(true)
+
     this._debugLog(`connecting WS data to ${url}`);
     this.wsData = new WebSocket(url);
     this.wsData.binaryType = 'arraybuffer';
@@ -476,7 +490,8 @@ export class WonderlandClient {
   }
 
   async sendStartServerSignal(): Promise<boolean> {
-    const response = await fetch(`${COMMANDER_URL}/api/servers/start`, {
+    const baseUrl = this.discord ? `/.proxy/cloud` : COMMANDER_URL;
+    const response = await fetch(`${baseUrl}/api/servers/start`, {
       body: JSON.stringify({
         path: this.path.replace('/', '').slice(0, -3),
       }),
@@ -534,9 +549,7 @@ export class WonderlandClient {
   }
 
   async createSignalling(data: any): Promise<number[]> {
-    const url = `${this.secure ? 'wss' : 'ws'}://${this.host}:${this.port}${
-      this.path
-    }/${this.id}`;
+    const url = this.getUrl();
     this._debugLog(`connecting WS to ${url}`);
     this.ws = new WebSocket(url);
     let connected = false;
