@@ -24,6 +24,7 @@ enum WSMessageName {
   Pong = 'pong',
   Ping = 'ping',
   Restart = 'restart',
+  WebSocketsData = 'websocketsdata',
 }
 
 interface WSMessageEvent {
@@ -31,6 +32,7 @@ interface WSMessageEvent {
   data: {
     description?: string;
     candidate?: RTCIceCandidateInit;
+    joinedData?: any;
   };
   custom_data: string;
 }
@@ -67,7 +69,7 @@ const WonderlandClientDefaultOptions: WonderlandClientOptions = {
 export class WonderlandClient {
   eventQueue: any[] = [];
   candidates: RTCIceCandidateInit[] = [];
-  peerConnection: RTCPeerConnection;
+  peerConnection?: RTCPeerConnection;
   datachannel?: RTCDataChannel;
   id: string;
   debug: boolean;
@@ -87,12 +89,14 @@ export class WonderlandClient {
   audioNode?: HTMLAudioElement;
   gainNode?: GainNode;
   ws?: WebSocket;
+  wsData?: WebSocket;
   pingInterval?: number;
   makingOffer: boolean = false;
   audioAdded: boolean = false;
   audioAddingPromise?: Promise<void>;
   skipServerStart: boolean = false;
   isIOS = false;
+  webRTCSupported = true;
 
   /**
    * Constructor
@@ -119,24 +123,73 @@ export class WonderlandClient {
 
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-
     this._debugLog('client created with options:', mergedOptions);
     // TODO DO NOT MIX AUDIO IF NOT ENABLED ON CLIENT
     if (this.audio) {
     }
     this.receivedData = [];
-    this.peerConnection = new RTCPeerConnection({
-      iceServers: [
-        {
-          urls: 'stun:stun.l.google.com:19302',
-        },
-      ],
-    });
+    try {
+      this.peerConnection = new RTCPeerConnection({
+        iceServers: [
+          {
+            urls: 'stun:stun.l.google.com:19302',
+          },
+        ],
+      });
+    } catch (err) {
+      this.webRTCSupported = false;
+    }
+
     this.bindOnWindowCloseEvent();
     this.createInputOutputControls();
   }
 
-  recreateMicrophoneTrack(deviceId?: string){
+  createWSDataConnection() {
+    const url = `${this.secure ? 'wss' : 'ws'}://${this.host}:${this.port}${
+      this.path
+    }/${this.id}-ws-data`;
+    this._debugLog(`connecting WS data to ${url}`);
+    this.wsData = new WebSocket(url);
+    this.wsData.binaryType = 'arraybuffer';
+    return new Promise((resolve, reject) => {
+      //@ts-ignore
+      let pingInterval;
+      this.wsData?.addEventListener('open', async (event) => {
+        this._debugLog('WebSocketData connected, signaling ready', event);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-ignore
+        pingInterval = setInterval(() => {
+          this.wsData?.send('ping');
+        }, 5000);
+        this.sendViaWsInternal({
+          name: WSMessageName.Custom,
+          custom: { type: 'websocketsfallback'},
+        });
+        resolve({});
+      });
+      this.wsData?.addEventListener('close', (close) => {
+        this._debugLog('WebSocket Data closed:', close);
+        //@ts-ignore
+        clearInterval(pingInterval as number);
+        if (
+          this.wsData &&
+          this.wsData.readyState !== this.wsData.CLOSED &&
+          this.wsData.readyState !== this.wsData.CLOSING
+        ) {
+          this.wsData.close();
+          console.log('ws data connection cleaned up');
+        }
+      });
+      this.wsData?.addEventListener(
+        'message',
+        (async (msgEvt: { data: ArrayBuffer }) => {
+          this.receivedData.push(msgEvt.data);
+        }).bind(this)
+      );
+    });
+  }
+
+  recreateMicrophoneTrack(deviceId?: string) {
     const newConstraints = {
       audio: { deviceId },
       echoCancellation: true,
@@ -147,7 +200,7 @@ export class WonderlandClient {
       this._debugLog('got stream for device', deviceId, stream);
       const audioTrack = stream.getTracks()[0];
 
-      const audioSender = this.peerConnection.getSenders().find(function(s) {
+      const audioSender = this.peerConnection?.getSenders().find(function (s) {
         return s.track?.kind == audioTrack.kind;
       });
 
@@ -161,21 +214,23 @@ export class WonderlandClient {
   createInputOutputControls(): void {
     //@ts-ignore
     window.wonderlandChangeInputDevice = (deviceId) => {
-
-      if (this.peerConnection.connectionState === 'connected') {
+      if (this.peerConnection?.connectionState === 'connected') {
         this._debugLog('already connected, replace track');
         this.recreateMicrophoneTrack(deviceId);
       } else {
-        this._debugLog('not connected yet, change the deviceId value of instance');
+        this._debugLog(
+          'not connected yet, change the deviceId value of instance'
+        );
         this.inputDeviceId = deviceId;
       }
-
-
     };
     //@ts-ignore
     window.wonderlandChangeOutputDevice = (deviceId) => {
       if (this.context) {
-        this._debugLog('already got audio context, replace sink with ', deviceId);
+        this._debugLog(
+          'already got audio context, replace sink with ',
+          deviceId
+        );
         //@ts-ignore
         if (this.context.setSinkId) {
           //@ts-ignore
@@ -198,8 +253,8 @@ export class WonderlandClient {
       }
       return {
         defaultValue: 1,
-        maxValue: 3.4028234663852886e+38,
-        minValue: -3.4028234663852886e+38,
+        maxValue: 3.4028234663852886e38,
+        minValue: -3.4028234663852886e38,
         value: 1,
       };
     };
@@ -208,15 +263,17 @@ export class WonderlandClient {
     window.wonderlandSetGainNodeValue = (gain) => {
       if (this.gainNode && this.incomingRemoteGainNode && this.context) {
         this.gainNode.gain.setValueAtTime(gain, this.context.currentTime);
-        this.incomingRemoteGainNode.gain.setValueAtTime(gain, this.context.currentTime);
+        this.incomingRemoteGainNode.gain.setValueAtTime(
+          gain,
+          this.context.currentTime
+        );
       }
       console.error('could not change gain, no gainNode or context exists yet');
     };
-
   }
 
-  onXRSessionStart(): void{
-    if(this.audio){
+  onXRSessionStart(): void {
+    if (this.audio) {
       this.recreateMicrophoneTrack();
     }
   }
@@ -244,6 +301,7 @@ export class WonderlandClient {
       this.ws.close();
       console.log('ws connection cleaned up');
     }
+
   }
 
   async createNewPromise(): Promise<AudioContext> {
@@ -328,16 +386,15 @@ export class WonderlandClient {
     // and https://bugs.chromium.org/p/chromium/issues/detail?id=121673#c121
     this.remoteStream = stream;
     // @ts-ignore
-    if(navigator.audioSession){
+    if (navigator.audioSession) {
       // @ts-ignore
-      navigator.audioSession.type = "playback"
+      navigator.audioSession.type = 'playback';
     }
     if (!this.isIOS) {
       let audioElem: HTMLAudioElement | null = new Audio();
       audioElem.controls = true;
       audioElem.muted = true;
       audioElem.srcObject = this.remoteStream;
-
 
       audioElem.addEventListener('canplaythrough', () => {
         (audioElem as HTMLAudioElement).pause();
@@ -357,7 +414,6 @@ export class WonderlandClient {
       });
     }
 
-
     if (!this.isIOS && this.context && this.incomingRemoteGainNode) {
       // Gain node for this stream only
       // Connected to gain node for all remote streams
@@ -369,7 +425,6 @@ export class WonderlandClient {
 
       this._debugLog('added stream to audio context');
     } else {
-
     }
   }
 
@@ -408,9 +463,8 @@ export class WonderlandClient {
           },
         });
         media.getTracks().forEach((track) => {
-          this.peerConnection.addTrack(track, media);
+          this.peerConnection?.addTrack(track, media);
         });
-
 
         await this.waitForAudioContext();
         this.audioAdded = true;
@@ -464,13 +518,17 @@ export class WonderlandClient {
     // we are creating objectIds on join which are returned with a joinack message
     // then we create everything else and then return the created object ids
     const createdObjects = await this.createSignalling(data);
-    this._debugLog('peer connection created!');
-    await this.createDataChannel();
-    this._debugLog('datachannel created');
+    if (this.webRTCSupported) {
+      this._debugLog('peer connection created!');
+      await this.createDataChannel();
+      this._debugLog('datachannel created');
 
-    if (this.audio){
-      await this.startNegotiation();
-      await this.addLocalAudioTracks();
+      if (this.audio) {
+        await this.startNegotiation();
+        await this.addLocalAudioTracks();
+      }
+    }else{
+      await this.createWSDataConnection();
     }
     return createdObjects;
   }
@@ -485,8 +543,12 @@ export class WonderlandClient {
     return new Promise((resolve, reject) => {
       this.ws?.addEventListener('open', async (event) => {
         this._debugLog('WebSocket connected, signaling ready', event);
-        this._debugLog('Creating peer connection', event);
-        this.createPeerConnection();
+        if (this.webRTCSupported) {
+          console.log('Creating peer connection', event);
+          this.createPeerConnection();
+        } else {
+          console.log('WebRTC not supported, fallback to websockets');
+        }
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         //@ts-ignore
         this.pingInterval = setInterval(() => {
@@ -517,41 +579,43 @@ export class WonderlandClient {
               this._debugLog(description?.split('\r\n'));
 
               this._debugLog('  - Setting remote description');
-              await this.peerConnection.setRemoteDescription({
+              await this.peerConnection?.setRemoteDescription({
                 sdp: description,
                 type: 'offer',
               });
-              const answer = await this.peerConnection.createAnswer();
-              const parsedSDP = parse(answer.sdp as string);
-              parsedSDP.media.forEach((media) => {
-                if (media.type === 'audio') {
+              const answer = await this.peerConnection?.createAnswer();
+              if (answer) {
+                const parsedSDP = parse(answer.sdp as string);
+                parsedSDP.media.forEach((media) => {
+                  if (media.type === 'audio') {
+                    media.fmtp[0].config = media.fmtp[0].config
+                      // disable ForwardErrorCorrection as it reduces the sound quality
+                      .replace('useinbandfec=1', 'useinbandfec=0')
+                      // set the packet size to 10ms per packet
+                      .replace('minptime=0', 'minptime=10')
+                      // explicitly ask for a stereo input from the server
+                      .concat(';stereo=1;ssprop-stereo=1');
+                  }
+                });
+                answer.sdp = write(parsedSDP);
 
-                  media.fmtp[0].config = media.fmtp[0].config
-                    // disable ForwardErrorCorrection as it reduces the sound quality
-                    .replace('useinbandfec=1', 'useinbandfec=0')
-                    // set the packet size to 10ms per packet
-                    .replace('minptime=0', 'minptime=10')
-                    // explicitly ask for a stereo input from the server
-                    .concat(';stereo=1;ssprop-stereo=1');
-                }
-              });
-              answer.sdp = write(parsedSDP);
+                await this.peerConnection?.setLocalDescription(answer);
+                this.sendViaWsInternal({
+                  name: WSMessageName.Answer,
+                  data: {
+                    description: answer.sdp,
+                  },
+                });
+                this._debugLog('send answerd');
+              }
 
-              await this.peerConnection.setLocalDescription(answer);
-              this.sendViaWsInternal({
-                name: WSMessageName.Answer,
-                data: {
-                  description: answer.sdp,
-                },
-              });
-              this._debugLog('send answerd');
               break;
             case WSMessageName.Answer:
               const description2 = msg.data?.description;
               this._debugLog('received', msg.name);
               this._debugLog(description2?.split('\r\n'));
 
-              await this.peerConnection.setRemoteDescription({
+              await this.peerConnection?.setRemoteDescription({
                 sdp: description2,
                 type: 'answer',
               });
@@ -559,12 +623,12 @@ export class WonderlandClient {
               break;
             case WSMessageName.Candidate:
               if (msg.data && msg.data.candidate) {
-                if (this.peerConnection.remoteDescription) {
+                if (this.peerConnection?.remoteDescription) {
                   this.peerConnection
                     .addIceCandidate(msg.data.candidate)
                     .then((val) => this._debugLog('added ice candidate', val))
                     .catch((err) =>
-                      this._debugLog('could not add candidate', err),
+                      this._debugLog('could not add candidate', err)
                     );
                 } else {
                   this.candidates.push(msg.data.candidate);
@@ -598,7 +662,7 @@ export class WonderlandClient {
                 this.eventQueue.push(parsedEvent);
               } else {
                 console.error(
-                  'received custom event without custom data! cannot be',
+                  'received custom event without custom data! cannot be'
                 );
               }
               break;
@@ -606,71 +670,75 @@ export class WonderlandClient {
               console.error('RECEIVED UNKNOWN EVENT!!', msgEvt);
               break;
           }
-        }).bind(this),
+        }).bind(this)
       );
     });
   }
 
   async createDataChannel() {
     const datachannel = (this.datachannel =
-      this.peerConnection.createDataChannel('data'));
+      this.peerConnection?.createDataChannel('data'));
 
-    return new Promise<void>((resolve, reject) => {
-      datachannel.onopen = async () => {
-        this._debugLog('datachannel opened!');
-        resolve();
-      };
-      datachannel.onmessage = (event) => {
-        this.receivedData.push(event.data);
-      };
-      datachannel.onerror = (error) => {
-        console.error('datachannel error:', error);
-        reject(error);
-      };
-      datachannel.onclose = (event) => {
-        console.log('datachannel close:', event);
-      };
-    });
+    if (datachannel) {
+      return new Promise<void>((resolve, reject) => {
+        datachannel.onopen = async () => {
+          this._debugLog('datachannel opened!');
+          resolve();
+        };
+        datachannel.onmessage = (event) => {
+          this.receivedData.push(event.data);
+        };
+        datachannel.onerror = (error) => {
+          console.error('datachannel error:', error);
+          reject(error);
+        };
+        datachannel.onclose = (event) => {
+          console.log('datachannel close:', event);
+        };
+      });
+    }
+    return Promise.resolve();
   }
 
   async startNegotiation() {
-    const offer = await this.peerConnection.createOffer();
-    const parsedSDP = parse(offer.sdp as string);
-    parsedSDP.media.forEach((media) => {
-      if (media.type === 'audio') {
-
-        media.fmtp[0].config = media.fmtp[0].config
-          // disable ForwardErrorCorrection as it reduces the sound quality
-          .replace('useinbandfec=1', 'useinbandfec=0')
-          // set the packet size to 10ms per packet
-          .replace('minptime=0', 'minptime=20')
-          // explicitly offer a mono channel as an input to the server
-          .concat(';stereo=0;ssprop-stereo=0');
-      }
-    });
-    offer.sdp = write(parsedSDP);
-    await this.peerConnection.setLocalDescription(offer);
-    this.sendViaWsInternal({
-      name: WSMessageName.Offer,
-      data: {
-        description: this.peerConnection.localDescription?.sdp,
-      },
-    });
+    const offer = await this.peerConnection?.createOffer();
+    if (offer && this.peerConnection) {
+      const parsedSDP = parse(offer.sdp as string);
+      parsedSDP.media.forEach((media) => {
+        if (media.type === 'audio') {
+          media.fmtp[0].config = media.fmtp[0].config
+            // disable ForwardErrorCorrection as it reduces the sound quality
+            .replace('useinbandfec=1', 'useinbandfec=0')
+            // set the packet size to 10ms per packet
+            .replace('minptime=0', 'minptime=20')
+            // explicitly offer a mono channel as an input to the server
+            .concat(';stereo=0;ssprop-stereo=0');
+        }
+      });
+      offer.sdp = write(parsedSDP);
+      await this.peerConnection.setLocalDescription(offer);
+      this.sendViaWsInternal({
+        name: WSMessageName.Offer,
+        data: {
+          description: this.peerConnection.localDescription?.sdp,
+        },
+      });
+    }
   }
 
   createPeerConnection() {
     this.peerConnection = new RTCPeerConnection({
       iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun.l.google.com:5349" },
-        { urls: "stun:stun1.l.google.com:3478" },
-        { urls: "stun:stun1.l.google.com:5349" },
-        { urls: "stun:stun2.l.google.com:19302" },
-        { urls: "stun:stun2.l.google.com:5349" },
-        { urls: "stun:stun3.l.google.com:3478" },
-        { urls: "stun:stun3.l.google.com:5349" },
-        { urls: "stun:stun4.l.google.com:19302" },
-        { urls: "stun:stun4.l.google.com:5349" }
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun.l.google.com:5349' },
+        { urls: 'stun:stun1.l.google.com:3478' },
+        { urls: 'stun:stun1.l.google.com:5349' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:5349' },
+        { urls: 'stun:stun3.l.google.com:3478' },
+        { urls: 'stun:stun3.l.google.com:5349' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:5349' },
       ],
       bundlePolicy: 'balanced',
     });
@@ -679,7 +747,7 @@ export class WonderlandClient {
         'ice gathering change',
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         //@ts-ignore
-        event.target.iceGatheringState,
+        event.target.iceGatheringState
       );
     };
     this.peerConnection.onicecandidate = (event) => {
@@ -696,17 +764,20 @@ export class WonderlandClient {
     this.peerConnection.onsignalingstatechange = () => {
       this._debugLog(
         'received signalling state change event',
-        this.peerConnection.signalingState,
+        this.peerConnection?.signalingState
       );
       if (
-        this.peerConnection.signalingState === 'have-remote-offer' ||
-        this.peerConnection.signalingState === 'stable'
+        this.peerConnection &&
+        (this.peerConnection.signalingState === 'have-remote-offer' ||
+          this.peerConnection.signalingState === 'stable')
       ) {
         this.candidates.forEach((can) => {
-          this.peerConnection
-            .addIceCandidate(can)
-            .then((val) => console.log('added ice candidate', val, can))
-            .catch((err) => console.log('could not add candidate', err));
+          if (this.peerConnection) {
+            this.peerConnection
+              .addIceCandidate(can)
+              .then((val) => console.log('added ice candidate', val, can))
+              .catch((err) => console.log('could not add candidate', err));
+          }
         });
         this.candidates.length = 0;
       }
@@ -718,7 +789,7 @@ export class WonderlandClient {
     };
     this.peerConnection.onnegotiationneeded = async (event) => {
       this._debugLog('received negotiation needed event', event);
-      if (this.peerConnection.signalingState !== 'stable') {
+      if (this.peerConnection?.signalingState !== 'stable') {
         return;
       }
       this.makingOffer = true;
@@ -727,6 +798,11 @@ export class WonderlandClient {
     };
     this.peerConnection.onconnectionstatechange = () => {
       this._debugLog('connection state change', this.peerConnection);
+      if(this.peerConnection?.connectionState === 'failed'){
+        // we have a failed WebRTC connection, let's try a fallback to websockets instead!
+        this.webRTCSupported = false;
+        this.createWSDataConnection();
+      }
     };
   }
 
@@ -737,19 +813,27 @@ export class WonderlandClient {
    * @param data {Blob|TypedArray|ArrayBuffer|string} Data to send
    */
   send(data: Blob | ArrayBufferView | ArrayBuffer | string) {
-    if (!this.datachannel || this.datachannel.readyState != 'open') return;
-    /* TODO: Probably attach a timestamp */
-    if (typeof data === 'string') {
-      this.datachannel.send(data);
-    }
-    if (data instanceof Blob) {
-      this.datachannel.send(data);
-    }
-    if (ArrayBuffer.isView(data)) {
-      this.datachannel.send(data);
-    }
-    if (data instanceof ArrayBuffer) {
-      this.datachannel.send(data);
+    if (this.webRTCSupported) {
+      if (!this.datachannel || this.datachannel.readyState != 'open') return;
+      /* TODO: Probably attach a timestamp */
+      if (typeof data === 'string') {
+        this.datachannel.send(data);
+      }
+      if (data instanceof Blob) {
+        this.datachannel.send(data);
+      }
+      if (ArrayBuffer.isView(data)) {
+        this.datachannel.send(data);
+      }
+      if (data instanceof ArrayBuffer) {
+        this.datachannel.send(data);
+      }
+    } else {
+      if(this.wsData && this.wsData.OPEN){
+        this.wsData?.send(data)
+      }else{
+        console.error('COULD NOT SEND WS DATA', data)
+      }
     }
   }
 
@@ -769,10 +853,10 @@ export class WonderlandClient {
   }
 
   sendViaWsInternal({
-                      name,
-                      data = {},
-                      custom,
-                    }: {
+    name,
+    data = {},
+    custom,
+  }: {
     name: WSMessageName;
     data?: any;
     custom?: any;
@@ -784,7 +868,7 @@ export class WonderlandClient {
         data,
         timestamp: Date.now(),
         custom_data: custom ? JSON.stringify(custom) : '',
-      }),
+      })
     );
   }
 
