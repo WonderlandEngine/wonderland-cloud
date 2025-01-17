@@ -249,7 +249,7 @@ export class WonderlandClient {
   getUrl(withData = false) {
     if (this.discord) {
       const base = window.location.origin.replace('https', 'wss');
-      return `${base}/.proxy/server/${this.path}/${this.id}${
+      return `${base}/.proxy/server${this.path}/${this.id}${
         withData ? '-ws-data' : ''
       }`;
     }
