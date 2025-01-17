@@ -1,6 +1,6 @@
 {
   "name": "@wonderlandcloud/client",
-  "version": "0.2.0-wip4",
+  "version": "0.2.0-wip5",
   "description": "Wonderland Engine multi-user server client and components.",
   "main": "dist/index.js",
   "wonderlandengine": {},
