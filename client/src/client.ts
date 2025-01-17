@@ -25,7 +25,6 @@ enum WSMessageName {
   Pong = 'pong',
   Ping = 'ping',
   Restart = 'restart',
-  WebSocketsData = 'websocketsdata',
 }
 
 interface WSMessageEvent {
@@ -46,6 +45,75 @@ interface WSMessageEvent {
 export interface WsMessageCustom {
   type: string;
   data: any;
+}
+
+class WsDataConnection {
+  wsClients: WebSocket[];
+  currentIndex = 0;
+  receivedData: any[];
+  url: string;
+
+  constructor(url: string, receivedData: any[], connNum: number) {
+    this.wsClients = [];
+    this.url = url;
+    // create a reference to parents received data
+    this.receivedData = receivedData;
+    for (let i = 0; i < connNum; i++) {
+      this.createWSDataConnection();
+    }
+  }
+
+  createWSDataConnection() {
+    console.log(`connecting WS data to ${this.url}`);
+    const wsData = new WebSocket(this.url);
+    wsData.binaryType = 'arraybuffer';
+    return new Promise((resolve, reject) => {
+      //@ts-ignore
+      let pingInterval;
+      wsData?.addEventListener('open', async (event) => {
+        console.log('WebSocketData connected, signaling ready', event);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-ignore
+        pingInterval = setInterval(() => {
+          wsData?.send('ping');
+        }, 5000);
+        // only add the connection to the array if it's open!
+        this.wsClients.push(wsData);
+        resolve({});
+      });
+      wsData?.addEventListener('close', (close) => {
+        console.log('WebSocket Data closed:', close);
+        //@ts-ignore
+        clearInterval(pingInterval as number);
+        if (
+          wsData &&
+          wsData.readyState !== wsData.CLOSED &&
+          wsData.readyState !== wsData.CLOSING
+        ) {
+          wsData.close();
+          console.log('ws data connection cleaned up');
+        }
+      });
+      wsData?.addEventListener(
+        'message',
+        (async (msgEvt: { data: ArrayBuffer }) => {
+          this.receivedData.push(msgEvt.data);
+        }).bind(this)
+      );
+    });
+  }
+  send(data: ArrayBuffer){
+    if(this.wsClients.length === 0){
+      return;
+    }
+    if(this.currentIndex === this.wsClients.length-1){
+      this.currentIndex = 0;
+    }else{
+      this.currentIndex += 1;
+    }
+    const wsClient = this.wsClients[this.currentIndex];
+    wsClient.send(data);
+  }
 }
 
 /**
@@ -91,7 +159,7 @@ export class WonderlandClient {
   audioNode?: HTMLAudioElement;
   gainNode?: GainNode;
   ws?: WebSocket;
-  wsData?: WebSocket;
+  wsData?: WsDataConnection;
   pingInterval?: number;
   makingOffer: boolean = false;
   audioAdded: boolean = false;
@@ -132,6 +200,7 @@ export class WonderlandClient {
     if (this.audio) {
     }
     this.receivedData = [];
+    this.webRTCSupported = false;
     try {
       this.peerConnection = new RTCPeerConnection({
         iceServers: [
@@ -148,59 +217,23 @@ export class WonderlandClient {
     this.createInputOutputControls();
   }
 
-  getUrl(withData= false){
-    if(this.discord){
+  getUrl(withData = false) {
+    if (this.discord) {
       const base = window.location.origin.replace('https', 'wss');
-      return `${base}/.proxy/server/${this.path}/${this.id}${withData?'-ws-data':''}`;
-
+      return `${base}/.proxy/server/${this.path}/${this.id}${
+        withData ? '-ws-data' : ''
+      }`;
     }
     return `${this.secure ? 'wss' : 'ws'}://${this.host}:${this.port}${
       this.path
-    }/${this.id}${withData?'-ws-data':''}`
+    }/${this.id}${withData ? '-ws-data' : ''}`;
   }
 
   createWSDataConnection() {
-    const url = this.getUrl(true)
+    const url = this.getUrl(true);
 
     this._debugLog(`connecting WS data to ${url}`);
-    this.wsData = new WebSocket(url);
-    this.wsData.binaryType = 'arraybuffer';
-    return new Promise((resolve, reject) => {
-      //@ts-ignore
-      let pingInterval;
-      this.wsData?.addEventListener('open', async (event) => {
-        this._debugLog('WebSocketData connected, signaling ready', event);
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
-        pingInterval = setInterval(() => {
-          this.wsData?.send('ping');
-        }, 5000);
-        this.sendViaWsInternal({
-          name: WSMessageName.Custom,
-          custom: { type: 'websocketsfallback'},
-        });
-        resolve({});
-      });
-      this.wsData?.addEventListener('close', (close) => {
-        this._debugLog('WebSocket Data closed:', close);
-        //@ts-ignore
-        clearInterval(pingInterval as number);
-        if (
-          this.wsData &&
-          this.wsData.readyState !== this.wsData.CLOSED &&
-          this.wsData.readyState !== this.wsData.CLOSING
-        ) {
-          this.wsData.close();
-          console.log('ws data connection cleaned up');
-        }
-      });
-      this.wsData?.addEventListener(
-        'message',
-        (async (msgEvt: { data: ArrayBuffer }) => {
-          this.receivedData.push(msgEvt.data);
-        }).bind(this)
-      );
-    });
+    this.wsData = new WsDataConnection(url, this.receivedData, 4);
   }
 
   recreateMicrophoneTrack(deviceId?: string) {
@@ -315,7 +348,6 @@ export class WonderlandClient {
       this.ws.close();
       console.log('ws connection cleaned up');
     }
-
   }
 
   async createNewPromise(): Promise<AudioContext> {
@@ -542,8 +574,13 @@ export class WonderlandClient {
         await this.startNegotiation();
         await this.addLocalAudioTracks();
       }
-    }else{
+    } else {
+
       await this.createWSDataConnection();
+      this.sendViaWsInternal({
+        name: WSMessageName.Custom,
+        custom: { type: 'websocketsfallback' },
+      });
     }
     return createdObjects;
   }
@@ -811,7 +848,7 @@ export class WonderlandClient {
     };
     this.peerConnection.onconnectionstatechange = () => {
       this._debugLog('connection state change', this.peerConnection);
-      if(this.peerConnection?.connectionState === 'failed'){
+      if (this.peerConnection?.connectionState === 'failed') {
         // we have a failed WebRTC connection, let's try a fallback to websockets instead!
         this.webRTCSupported = false;
         this.createWSDataConnection();
@@ -842,11 +879,7 @@ export class WonderlandClient {
         this.datachannel.send(data);
       }
     } else {
-      if(this.wsData && this.wsData.OPEN){
-        this.wsData?.send(data)
-      }else{
-        console.error('COULD NOT SEND WS DATA', data)
-      }
+      this.wsData?.send(data as ArrayBuffer);
     }
   }
 

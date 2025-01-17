@@ -101,7 +101,7 @@ export class NetworkManager {
     const f32 = new Float32Array(buffer);
     const u32 = new Uint32Array(buffer);
 
-    u32[0] = Date.now();
+    u32[0] = Number(Date.now().toString().slice(4));
 
     const idsOffset = 1;
     const transformsOffset = 1 + count;
