@@ -50,17 +50,32 @@ export interface WsMessageCustom {
 class WsDataConnection {
   wsClients: WebSocket[];
   currentIndex = 0;
-  receivedDataCB: (data:ArrayBuffer)=>void;
+  receivedDataCB: (data: ArrayBuffer) => void;
   url: string;
+  connected: boolean;
 
-  constructor(url: string, receivedDataCallback: (data:ArrayBuffer)=>void, connNum: number) {
+  static async createConnection(
+    url: string,
+    receivedDataCallback: (data: ArrayBuffer) => void,
+    connNum: number
+  ): Promise<WsDataConnection> {
+    const ws = new WsDataConnection(url, receivedDataCallback, connNum);
+    for (let i = 0; i < connNum; i++) {
+      await ws.createWSDataConnection();
+    }
+    return ws;
+  }
+
+  constructor(
+    url: string,
+    receivedDataCallback: (data: ArrayBuffer) => void,
+    connNum: number
+  ) {
     this.wsClients = [];
     this.url = url;
+    this.connected = false;
     // create a reference to parents received data
     this.receivedDataCB = receivedDataCallback;
-    for (let i = 0; i < connNum; i++) {
-      this.createWSDataConnection();
-    }
   }
 
   createWSDataConnection() {
@@ -79,6 +94,7 @@ class WsDataConnection {
         }, 5000);
         // only add the connection to the array if it's open!
         this.wsClients.push(wsData);
+        this.connected = true;
         resolve({});
       });
       wsData?.addEventListener('close', (close) => {
@@ -95,6 +111,9 @@ class WsDataConnection {
         }
         const index = this.wsClients.indexOf(wsData);
         this.wsClients.splice(index, 1);
+        if (this.wsClients.length === 0) {
+          this.connected = false;
+        }
       });
       wsData?.addEventListener(
         'message',
@@ -104,13 +123,14 @@ class WsDataConnection {
       );
     });
   }
-  send(data: ArrayBuffer){
-    if(this.wsClients.length === 0){
+
+  send(data: ArrayBuffer) {
+    if (this.wsClients.length === 0) {
       return;
     }
-    if(this.currentIndex === this.wsClients.length-1){
+    if (this.currentIndex === this.wsClients.length - 1) {
       this.currentIndex = 0;
-    }else{
+    } else {
       this.currentIndex += 1;
     }
     const wsClient = this.wsClients[this.currentIndex];
@@ -176,6 +196,7 @@ export class WonderlandClient {
   isIOS = false;
   webRTCSupported = true;
   discord = false;
+  dataConnected = false;
 
   /**
    * Constructor
@@ -237,13 +258,18 @@ export class WonderlandClient {
     }/${this.id}${withData ? '-ws-data' : ''}`;
   }
 
-  createWSDataConnection() {
+  async createWSDataConnection() {
     const url = this.getUrl(true);
 
     this._debugLog(`connecting WS data to ${url}`);
-    this.wsData = new WsDataConnection(url, (data)=>{
-      this.receivedData.push(data);
-    }, 4);
+    this.wsData = await WsDataConnection.createConnection(
+      url,
+      (data) => {
+        this.receivedData.push(data);
+      },
+      4
+    );
+    this.dataConnected = true;
   }
 
   recreateMicrophoneTrack(deviceId?: string) {
@@ -585,7 +611,6 @@ export class WonderlandClient {
         await this.addLocalAudioTracks();
       }
     } else {
-
       await this.createWSDataConnection();
       this.sendViaWsInternal({
         name: WSMessageName.Custom,
@@ -743,6 +768,7 @@ export class WonderlandClient {
       return new Promise<void>((resolve, reject) => {
         datachannel.onopen = async () => {
           this._debugLog('datachannel opened!');
+          this.dataConnected = true;
           resolve();
         };
         datachannel.onmessage = (event) => {
