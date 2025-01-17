@@ -50,14 +50,14 @@ export interface WsMessageCustom {
 class WsDataConnection {
   wsClients: WebSocket[];
   currentIndex = 0;
-  receivedData: any[];
+  receivedDataCB: (data:ArrayBuffer)=>void;
   url: string;
 
-  constructor(url: string, receivedData: any[], connNum: number) {
+  constructor(url: string, receivedDataCallback: (data:ArrayBuffer)=>void, connNum: number) {
     this.wsClients = [];
     this.url = url;
     // create a reference to parents received data
-    this.receivedData = receivedData;
+    this.receivedDataCB = receivedDataCallback;
     for (let i = 0; i < connNum; i++) {
       this.createWSDataConnection();
     }
@@ -97,7 +97,7 @@ class WsDataConnection {
       wsData?.addEventListener(
         'message',
         (async (msgEvt: { data: ArrayBuffer }) => {
-          this.receivedData.push(msgEvt.data);
+          this.receivedDataCB(msgEvt.data);
         }).bind(this)
       );
     });
@@ -233,7 +233,9 @@ export class WonderlandClient {
     const url = this.getUrl(true);
 
     this._debugLog(`connecting WS data to ${url}`);
-    this.wsData = new WsDataConnection(url, this.receivedData, 4);
+    this.wsData = new WsDataConnection(url, (data)=>{
+      this.receivedData.push(data);
+    }, 4);
   }
 
   recreateMicrophoneTrack(deviceId?: string) {
