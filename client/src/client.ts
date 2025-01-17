@@ -93,6 +93,8 @@ class WsDataConnection {
           wsData.close();
           console.log('ws data connection cleaned up');
         }
+        const index = this.wsClients.indexOf(wsData);
+        this.wsClients.splice(index, 1);
       });
       wsData?.addEventListener(
         'message',
@@ -112,7 +114,13 @@ class WsDataConnection {
       this.currentIndex += 1;
     }
     const wsClient = this.wsClients[this.currentIndex];
-    wsClient.send(data);
+    if (
+      wsClient &&
+      wsClient.readyState !== wsClient.CLOSED &&
+      wsClient.readyState !== wsClient.CLOSING
+    ) {
+      wsClient.send(data);
+    }
   }
 }
 
