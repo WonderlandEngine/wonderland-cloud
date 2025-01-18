@@ -2,6 +2,7 @@
 import { parse, write } from 'sdp-transform';
 
 const COMMANDER_URL = 'https://cloud.wonderland.dev';
+const WEBSOCKET_DATA_CONN_COUNT = 8;
 
 export interface WonderlandClientOptions {
   debug: boolean;
@@ -267,7 +268,7 @@ export class WonderlandClient {
       (data) => {
         this.receivedData.push(data);
       },
-      4
+      WEBSOCKET_DATA_CONN_COUNT
     );
     this.dataConnected = true;
   }
