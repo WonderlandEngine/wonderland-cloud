@@ -60,14 +60,14 @@ export class NetworkManager {
     options: Partial<WonderlandClientOptions> = {}
   ) {
     if (!this.client) this.client = new WonderlandClient(options);
-    await this.client.connectAndJoinRoom(joinData);
     setInterval(() => {
       console.log(
         `${this.numberOfAcceptedData}/${this.numberOfReceivedData} data packets accepted.`
       );
       this.numberOfReceivedData = 0;
       this.numberOfAcceptedData = 0;
-    });
+    }, 1000);
+    return this.client.connectAndJoinRoom(joinData);
   }
 
   /** Send and receive data, called by NetworkConfigurationComponent */
