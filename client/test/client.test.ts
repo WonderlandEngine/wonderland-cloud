@@ -162,14 +162,22 @@ describe('test client networking', () => {
       expect(loginAck).toEqual(customJoinResponse);
 
       console.log('login ack', loginAck);
-      // whenever we send data via the Datachannel, it should be correctly received
 
+      // validate that we can receive data on every ws data channel
       for (let i = 0; i < webSocketData.length; i++) {
         const sentData = new ArrayBuffer(2 * i);
         await webSocketData[i].triggerEventListener('message', {
           data: sentData,
         });
         expect(client.receivedData[i]).toEqual(sentData);
+      }
+
+      // verify that we send the data via round robin between the WS conections
+      for (let i = 0; i < webSocketData.length; i++) {
+        const sentData = new ArrayBuffer(2 * i);
+        client.send(sentData);
+        expect(webSocketData[i].send).toHaveBeenCalledTimes(1);
+        expect(webSocketData[i].send).toHaveBeenCalledWith(sentData);
       }
 
       for (let i = 0; i < webSocketData.length; i++) {
