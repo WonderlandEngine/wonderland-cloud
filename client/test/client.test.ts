@@ -1,22 +1,35 @@
 import { WonderlandClient } from '../src/client';
 
-const mockConnection = {};
+const mockConnection = {
+  createDataChannel: jest.fn(),
+};
 //@ts-ignore
-window.RTCPeerConnection = jest.fn(() => mockConnection);
+global.RTCPeerConnection = jest.fn(() => mockConnection);
 describe('test client networking', () => {
   beforeEach(() => {});
-  afterEach(() => {});
-  describe('test connection via Datachannel', () => {
-    it('should have webRTCSupported if WebRTC available', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+  describe('Test data connection logic', () => {
+    it('should have webRTCSupported true if WebRTC available', () => {
+      //@ts-ignore
+      global.RTCPeerConnection.mockImplementationOnce(() => mockConnection);
       const client = new WonderlandClient();
       expect(client.webRTCSupported).toBeTruthy();
     });
-    it('should have webRTCSupported if WebRTC not available', () => {
-      const client = new WonderlandClient();
-      window.RTCPeerConnection.mockImplementationOnce(() => {
+    it('should have webRTCSupported false if WebRTC not available', () => {
+      //@ts-ignore
+      global.RTCPeerConnection.mockImplementationOnce(() => {
         throw Error('Not implemented');
       });
-      expect(client.webRTCSupported).toBeTruthy();
+      const client = new WonderlandClient();
+      expect(client.webRTCSupported).toBeFalsy();
+    });
+    it('should create datachannel on successful signalling', () => {
+      //@ts-ignore
+      global.RTCPeerConnection.mockImplementationOnce(() => mockConnection);
+      const client = new WonderlandClient();
+      expect(client.webRTCSupported).toBeFalsy();
     });
   });
 });

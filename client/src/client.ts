@@ -230,7 +230,6 @@ export class WonderlandClient {
     if (this.audio) {
     }
     this.receivedData = [];
-    this.webRTCSupported = false;
     try {
       this.peerConnection = new RTCPeerConnection({
         iceServers: [
