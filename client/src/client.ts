@@ -61,9 +61,12 @@ class WsDataConnection {
     connNum: number
   ): Promise<WsDataConnection> {
     const ws = new WsDataConnection(url, receivedDataCallback);
+    const createWsPromise = [];
     for (let i = 0; i < connNum; i++) {
-      await ws.createWSDataConnection();
+      createWsPromise.push(ws.createWSDataConnection());
     }
+    await Promise.all(createWsPromise);
+    console.log('WS data connection created successfully.');
     return ws;
   }
 
@@ -125,11 +128,6 @@ class WsDataConnection {
     if (this.wsClients.length === 0) {
       return;
     }
-    if (this.currentIndex === this.wsClients.length - 1) {
-      this.currentIndex = 0;
-    } else {
-      this.currentIndex += 1;
-    }
     const wsClient = this.wsClients[this.currentIndex];
     if (
       wsClient &&
@@ -137,6 +135,11 @@ class WsDataConnection {
       wsClient.readyState !== wsClient.CLOSING
     ) {
       wsClient.send(data);
+    }
+    if (this.currentIndex === this.wsClients.length - 1) {
+      this.currentIndex = 0;
+    } else {
+      this.currentIndex += 1;
     }
   }
 }
@@ -265,6 +268,7 @@ export class WonderlandClient {
       },
       WEBSOCKET_DATA_CONN_COUNT
     );
+    this._debugLog(`connected via WS data to ${url}`);
     this.dataConnected = true;
   }
 
