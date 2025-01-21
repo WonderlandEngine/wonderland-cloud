@@ -62,7 +62,9 @@ export class NetworkManager {
     if (!this.client) this.client = new WonderlandClient(options);
     setInterval(() => {
       console.log(
-        `${this.numberOfAcceptedData}/${this.numberOfReceivedData} data packets accepted.`
+        `${this.numberOfAcceptedData}/${this.numberOfReceivedData} ${Math.floor(
+          (this.numberOfAcceptedData / this.numberOfReceivedData) * 100
+        )}% data packets accepted.`
       );
       this.numberOfReceivedData = 0;
       this.numberOfAcceptedData = 0;

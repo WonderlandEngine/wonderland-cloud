@@ -60,18 +60,14 @@ class WsDataConnection {
     receivedDataCallback: (data: ArrayBuffer) => void,
     connNum: number
   ): Promise<WsDataConnection> {
-    const ws = new WsDataConnection(url, receivedDataCallback, connNum);
+    const ws = new WsDataConnection(url, receivedDataCallback);
     for (let i = 0; i < connNum; i++) {
       await ws.createWSDataConnection();
     }
     return ws;
   }
 
-  constructor(
-    url: string,
-    receivedDataCallback: (data: ArrayBuffer) => void,
-    connNum: number
-  ) {
+  constructor(url: string, receivedDataCallback: (data: ArrayBuffer) => void) {
     this.wsClients = [];
     this.url = url;
     this.connected = false;
@@ -87,7 +83,7 @@ class WsDataConnection {
       //@ts-ignore
       let pingInterval;
       wsData?.addEventListener('open', async (event) => {
-        console.log('WebSocketData connected, signaling ready', event);
+        console.log('WebSocketData connected, data connection ready', event);
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         //@ts-ignore
         pingInterval = setInterval(() => {
