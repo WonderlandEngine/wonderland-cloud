@@ -89,6 +89,10 @@ export class MultiUserServer extends EventEmitter {
 
   serverCommandsQueue: { [key: string]: ServerCommandWithTimeout } = {};
 
+  constructor(updatesPerSecond?: number) {
+    super();
+    this.updatesPerSecond = updatesPerSecond ?? 30;
+  }
   /*
     set to false to disable audio processing on the server side
     please note, that you need also to disable audio on the client to make it
