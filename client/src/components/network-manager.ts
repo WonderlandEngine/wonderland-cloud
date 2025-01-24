@@ -24,6 +24,10 @@ export class NetworkManager {
   lastMessageTimestamp = 0;
   client?: WonderlandClient;
 
+  /* metrics to count number of discarded packages */
+  numberOfAcceptedData = 0;
+  numberOfReceivedData = 0;
+
   /** Register a networked component. Called in start() of NetworkedComponent */
   registerNetworkedComponent(c: NetworkedComponent, write: boolean) {
     console.log('registered', write ? 'write' : 'read', 'comp', c.networkId);
@@ -43,7 +47,6 @@ export class NetworkManager {
     }
   }
 
-
   /**
    * Connect to a server and room
    *
@@ -57,6 +60,19 @@ export class NetworkManager {
     options: Partial<WonderlandClientOptions> = {}
   ) {
     if (!this.client) this.client = new WonderlandClient(options);
+    if (this.client.debug) {
+      setInterval(() => {
+        console.log(
+          `${this.numberOfAcceptedData}/${
+            this.numberOfReceivedData
+          } ${Math.floor(
+            (this.numberOfAcceptedData / this.numberOfReceivedData) * 100
+          )}% data packets accepted.`
+        );
+        this.numberOfReceivedData = 0;
+        this.numberOfAcceptedData = 0;
+      }, 1000);
+    }
     return this.client.connectAndJoinRoom(joinData);
   }
 
@@ -132,9 +148,11 @@ export class NetworkManager {
       newestTimestamp = u32[0];
       newestMessage = d;
     }
+    this.numberOfReceivedData += this.client.receivedData.length;
     this.client.receivedData.length = 0;
 
     if (!newestMessage) return;
+    this.numberOfAcceptedData += 1;
     this.lastMessageTimestamp = newestTimestamp;
 
     const f32 = new Float32Array(newestMessage);
