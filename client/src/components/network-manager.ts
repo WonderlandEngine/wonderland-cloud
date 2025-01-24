@@ -60,15 +60,19 @@ export class NetworkManager {
     options: Partial<WonderlandClientOptions> = {}
   ) {
     if (!this.client) this.client = new WonderlandClient(options);
-    setInterval(() => {
-      console.log(
-        `${this.numberOfAcceptedData}/${this.numberOfReceivedData} ${Math.floor(
-          (this.numberOfAcceptedData / this.numberOfReceivedData) * 100
-        )}% data packets accepted.`
-      );
-      this.numberOfReceivedData = 0;
-      this.numberOfAcceptedData = 0;
-    }, 1000);
+    if (this.client.debug) {
+      setInterval(() => {
+        console.log(
+          `${this.numberOfAcceptedData}/${
+            this.numberOfReceivedData
+          } ${Math.floor(
+            (this.numberOfAcceptedData / this.numberOfReceivedData) * 100
+          )}% data packets accepted.`
+        );
+        this.numberOfReceivedData = 0;
+        this.numberOfAcceptedData = 0;
+      }, 1000);
+    }
     return this.client.connectAndJoinRoom(joinData);
   }
 
