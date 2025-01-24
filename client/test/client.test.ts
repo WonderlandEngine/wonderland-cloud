@@ -181,7 +181,7 @@ describe('test client networking', () => {
       }
 
       for (let i = 0; i < webSocketData.length; i++) {
-        const sentData = new ArrayBuffer(2 * i);
+        const sentData = new ArrayBuffer(10 * i);
         client.send(sentData);
         expect(webSocketData[i].send).toHaveBeenCalledTimes(2);
         expect(webSocketData[i].send).toHaveBeenCalledWith(sentData);
