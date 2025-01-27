@@ -151,10 +151,6 @@ export class ApisClient {
         'could not find a valid subscription for creating a new server'
       );
     }
-    console.log({
-      ...createApiData,
-      subscription: validSubExists.id,
-    });
     const response = await fetch(`${this.config.COMMANDER_URL}/api/apis`, {
       method: 'POST',
       headers: {
