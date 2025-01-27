@@ -4,6 +4,7 @@ import path from 'path';
 import compressing from 'compressing';
 import * as fs from 'fs';
 import { Operation, OperationsClient } from './operations';
+import { SUBSCRIPTION_TYPE, SubscriptionClient } from './subscriptions';
 
 export interface WleApi {
   port: number;
@@ -39,12 +40,14 @@ export class ApisClient {
   config: ApisConfig;
   authToken: string;
   operationsClient: OperationsClient;
+  subscriptionClient: SubscriptionClient;
 
   // todo create dedicated projects config
   constructor(config: ApisConfig) {
     this.config = config;
     this.authToken = getAndValidateAuthToken(this.config);
     this.operationsClient = new OperationsClient(config);
+    this.subscriptionClient = new SubscriptionClient(config);
   }
 
   /**
@@ -137,19 +140,37 @@ export class ApisClient {
         'api name can ony be /^[a-z](([a-z]|\\d)-?([a-z]|\\d)?){0,20}[a-z]'
       );
     }
+    const subscriptions = await this.subscriptionClient.list();
+
+    const validSubExists = subscriptions.find(
+      (sub) => sub.type === SUBSCRIPTION_TYPE.PAGES_APIS
+    );
+
+    if (!validSubExists) {
+      throw new Error(
+        'could not find a valid subscription for creating a new server'
+      );
+    }
+    console.log({
+      ...createApiData,
+      subscription: validSubExists.id,
+    });
     const response = await fetch(`${this.config.COMMANDER_URL}/api/apis`, {
       method: 'POST',
       headers: {
         authorization: this.authToken,
         'content-type': 'application/json',
       },
-      body: JSON.stringify(createApiData),
+      body: JSON.stringify({
+        ...createApiData,
+        subscription: validSubExists.id,
+      }),
     });
     const serverData = await response.json();
     if (response.status < 300) {
       debugMessage('Successfully got apis', serverData);
       await this.operationsClient.waitUntilJobHasFinished(serverData.jobId);
-      return this.get(createApiData.name);
+      return await this.get(createApiData.name);
     } else {
       logMessage('Failed to get apis', serverData);
       throw Error('Failed to get apis');

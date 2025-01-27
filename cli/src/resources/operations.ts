@@ -67,12 +67,16 @@ export class OperationsClient {
         },
       }
     );
-    const serverData = await response.json();
+    const operationData = await response.json();
     if (response.status < 300) {
-      debugMessage('Successfully got operation status', serverData);
-      return serverData;
+      debugMessage('Successfully got operation status', operationData);
+      if (operationData.error) {
+        logMessage('Operation has failed', operationData);
+        throw new Error(operationData.error);
+      }
+      return operationData;
     } else {
-      logMessage('Failed to get operation status', serverData);
+      logMessage('Failed to get operation status', operationData);
       throw Error('Failed to get operation status');
     }
   }
