@@ -159,7 +159,11 @@ export class ApisClient {
   /**
    * Create new api deployment
    */
-  async update(data: { name: string; [key: string]: any }): Promise<WleApi> {
+  async update(data: {
+    name: string;
+    [key: string]: any;
+    updateEnv: boolean;
+  }): Promise<WleApi> {
     const response = await fetch(
       `${this.config.COMMANDER_URL}/api/apis/${data.name}`,
       {

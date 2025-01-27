@@ -60,19 +60,23 @@ const parseArgsConfig: ParseArgsConfig = {
       short: 'f',
       default: false,
     },
-    develop:{
+    develop: {
       type: 'boolean',
       short: 'd',
-      default: false
+      default: false,
     },
-    hrtf:{
+    hrtf: {
       type: 'boolean',
-      default: false
+      default: false,
     },
-    skipConfigUpdate:{
+    skipConfigUpdate: {
       type: 'boolean',
-      default: false
-    }
+      default: false,
+    },
+    updateEnv: {
+      type: 'boolean',
+      default: true,
+    },
   },
   strict: !process.env.TEST_MODE,
 };
@@ -105,9 +109,10 @@ export interface CliClientArgs {
   noThreads: boolean;
   help: boolean;
   force: boolean;
-  develop: boolean,
+  develop: boolean;
   hrtf: boolean;
-  skipConfigUpdate: boolean
+  skipConfigUpdate: boolean;
+  updateEnv: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -129,7 +134,8 @@ export interface CloudConfig {
   FORCE: boolean;
   DEVELOP: boolean;
   HRTF: boolean;
-  SKIP_CONFIG_UPDATE: boolean
+  SKIP_CONFIG_UPDATE: boolean;
+  UPDATE_ENV: boolean;
 }
 
 const cliConfig: Partial<CloudConfig> = {
@@ -145,17 +151,18 @@ const cliConfig: Partial<CloudConfig> = {
   FORCE: args.force,
   DEVELOP: args.develop,
   HRTF: args.hrtf,
-  SKIP_CONFIG_UPDATE: args.skipConfigUpdate
+  SKIP_CONFIG_UPDATE: args.skipConfigUpdate,
+  UPDATE_ENV: args.updateEnv,
 };
 
 export const getAndValidateAuthToken = (
-  cloudConfig: Partial<CloudConfig>,
+  cloudConfig: Partial<CloudConfig>
 ): string => {
   // if auth token location is not set, check under default location
   if (!cloudConfig.WLE_CREDENTIALS_LOCATION) {
     cloudConfig.WLE_CREDENTIALS_LOCATION = path.join(
       process.cwd(),
-      'wle-apitoken.json',
+      'wle-apitoken.json'
     );
   }
   // check if auth token exists under the WLE_CREDENTIALS_LOCATION
@@ -163,8 +170,8 @@ export const getAndValidateAuthToken = (
     assert.ok(
       cloudConfig.WLE_CREDENTIALS,
       'Could not find WLE api token file and also missing WLE_CREDENTIALS, please either set via cmd arg --authToken="YOUR_WLE_CREDENTIALS" or via WLE_CREDENTIALS env var.\n' +
-      'Alternatively you can also provide a path to your WLE api token file via "--authJsonLocation" or `AUTH_JSON_LOCATION` env var. Default location for your API token is: \n' +
-      `${path.join(process.cwd(), 'wle-apitoken.json')}`,
+        'Alternatively you can also provide a path to your WLE api token file via "--authJsonLocation" or `AUTH_JSON_LOCATION` env var. Default location for your API token is: \n' +
+        `${path.join(process.cwd(), 'wle-apitoken.json')}`
     );
   } else {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -172,12 +179,12 @@ export const getAndValidateAuthToken = (
     assert.ok(
       apiTokenJSON.token,
       `Missing "token" property in WLE api token file, located in ${cloudConfig.WLE_CREDENTIALS_LOCATION},\n` +
-      `please double check ` +
-      `if the token file is valid or else provide an auth token via WLE_CREDENTIALS env var or --authToken="YOUR_WLE_CREDENTIALS" argument. \n` +
-      `Default location for token file is ${path.join(
-        process.cwd(),
-        'wle-apitoken.json',
-      )}`,
+        `please double check ` +
+        `if the token file is valid or else provide an auth token via WLE_CREDENTIALS env var or --authToken="YOUR_WLE_CREDENTIALS" argument. \n` +
+        `Default location for token file is ${path.join(
+          process.cwd(),
+          'wle-apitoken.json'
+        )}`
     );
     cloudConfig.WLE_CREDENTIALS = apiTokenJSON.token;
   }
