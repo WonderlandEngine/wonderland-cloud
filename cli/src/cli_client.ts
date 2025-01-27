@@ -23,11 +23,7 @@ import {
 } from './constants';
 
 import helpDictionary from './cli_help';
-import {
-  SUBSCRIPTION_TYPE,
-  SUBSCRIPTION_TYPE_STRING_MAPPING,
-} from './resources/subscriptions';
-import { UpdateDataWleApi, WleApi } from './resources/api';
+import { SUBSCRIPTION_TYPE_STRING_MAPPING } from './resources/subscriptions';
 
 const readLineInterface = readline.createInterface({
   input: process.stdin,
@@ -308,9 +304,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
         case SERVERS_COMMANDS.LIST:
           const servers = await client.server?.list();
           logMessage('Found servers');
-          logMessage(
-            `SERVER_NAME - PACKAGE_NAME - CLI_ENABLED - HRTF_ENABLED`
-          );
+          logMessage(`SERVER_NAME - PACKAGE_NAME - CLI_ENABLED - HRTF_ENABLED`);
           servers?.map((server: CloudServer) =>
             logMessage(
               `${server.serverName} - ${server.packageName} - ${server.cli} - ${server.hrtfAudio}`
@@ -380,7 +374,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             }));
 
           if (!toDelete) {
-           logMessage(projectName);
+            logMessage(projectName);
             logMessage('Project name mismatch, exiting');
             process.exit(1);
           }
@@ -637,6 +631,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           }
           const updateData = {
             name: apiName3,
+            updateEnv: cliConfig.UPDATE_ENV,
           };
           // @ts-ignore
           updateData[key] = actualValue;
@@ -644,7 +639,9 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           logMessage('updated new api deployment', updatedApi);
           break;
         default:
-          throw new Error(`Unknown verb ${commandVerb}, available verbs are ${API_COMMANDS}`);
+          throw new Error(
+            `Unknown verb ${commandVerb}, available verbs are ${API_COMMANDS}`
+          );
       }
       break;
   }

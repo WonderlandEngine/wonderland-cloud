@@ -236,6 +236,48 @@ npm exec wl-cloud api create my-api-name 80 strm/helloworld-http env1=value1,env
 
 This command will create a hello world application listening on port `80` with the image `strm/helloworld-http` and the environment values `env1=value1` and `env2=value2`.
 
+### Updating single api properties
+
+#### Updating env values
+
+If you want to change or add env values to your current api deployment, you can do this via the command below.
+Please note, that existing env vars will be overwritten.
+
+```shell
+npm exec wl-cloud api update my-api-name env env1=value1,env2=value2
+```
+
+If you want to remove all env vars and only add the provided ones, use example below
+
+```shell
+npm exec wl-cloud api update my-api-name env env1=value1,env2=value2 --updateEnv=false
+```
+
+#### Updating port value
+
+If you want to change the port value, you can use the command below
+
+```shell
+npm exec wl-cloud api update my-api-name port 1234
+```
+
+#### Updating image value
+
+If you want to change the used image, use the command below. This will trigger a new deployment. Please note,
+that if the pod fails to start, a rollback to the previously working version is being performed.
+
+```shell
+npm exec wl-cloud api update my-api-name image my-image-registry.com/my-image-name:tagname
+```
+
+#### Updating dockerConfigBase64 value
+
+If you want to change the docker secret for your private registry you can do this with the command below.
+
+```shell
+npm exec wl-cloud api update my-api-name dockerConfigBase64 my-image-registry.com/my-image-name:tagname
+```
+
 ### Working with private registries
 
 If you want to use a private docker registry, then you need to provide a docker login secret encoded in base64. You can
