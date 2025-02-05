@@ -542,9 +542,35 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           const actualEnvVars = envVars.includes('=') ? envVars : '';
           const envVarsParsed: { [k: string]: string } = {};
           if (actualEnvVars) {
-            actualEnvVars.split(',').forEach((envVar) => {
-              const [key, value] = envVar.split('=');
-              envVarsParsed[key] = value;
+            const envVarsParsed: { [k: string]: string } = {};
+            // first split by =;
+            const splitted = actualEnvVars.split('=');
+
+            let currentEnvValue = '';
+            let currentEnvKey = '';
+            let newEnvKey = '';
+
+            splitted.forEach((value, index) => {
+              if (index === 0) {
+                currentEnvKey = value;
+              } else {
+                const split2 = value.split(',');
+                // we reached the end
+                if (split2.length === 1) {
+                  envVarsParsed[currentEnvKey] = split2[0];
+                  return;
+                }
+                // we reached the end
+                if (index !== splitted.length - 1) {
+                  newEnvKey = split2.splice(split2.length - 1)[0];
+                }
+                currentEnvValue = split2.join(',');
+              }
+
+              if (currentEnvValue) {
+                envVarsParsed[currentEnvKey] = currentEnvValue;
+                currentEnvKey = newEnvKey;
+              }
             });
           }
           const createdApi = await client.api?.create({
@@ -585,7 +611,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
                 let currentEnvKey = '';
                 let newEnvKey = '';
 
-                splitted.forEach((value: string, index: number) => {
+                splitted.forEach((value, index) => {
                   if (index === 0) {
                     currentEnvKey = value;
                   } else {
@@ -595,9 +621,13 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
                       envVarsParsed[currentEnvKey] = split2[0];
                       return;
                     }
-                    newEnvKey = split2.splice(split2.length - 1)[0];
+                    // we reached the end
+                    if (index !== splitted.length - 1) {
+                      newEnvKey = split2.splice(split2.length - 1)[0];
+                    }
                     currentEnvValue = split2.join(',');
                   }
+
                   if (currentEnvValue) {
                     envVarsParsed[currentEnvKey] = currentEnvValue;
                     currentEnvKey = newEnvKey;
