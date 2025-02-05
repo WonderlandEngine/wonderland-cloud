@@ -578,14 +578,34 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             case 'env':
               if (value && value.includes('=')) {
                 const envVarsParsed: { [k: string]: string } = {};
-                value.split(',').forEach((envVar) => {
-                  const [envKey, envValue] = envVar.split('=');
-                  envVarsParsed[envKey] = envValue;
+                // first split by =;
+                const splitted = value.split('=');
+
+                let currentEnvValue = '';
+                let currentEnvKey = '';
+                let newEnvKey = '';
+
+                splitted.forEach((value: string, index: number) => {
+                  if (index === 0) {
+                    currentEnvKey = value;
+                  } else {
+                    const split2 = value.split(',');
+                    // we reached the end
+                    if (split2.length === 1) {
+                      envVarsParsed[currentEnvKey] = split2[0];
+                      return;
+                    }
+                    newEnvKey = split2.splice(split2.length - 1)[0];
+                    currentEnvValue = split2.join(',');
+                  }
+                  if (currentEnvValue) {
+                    envVarsParsed[currentEnvKey] = currentEnvValue;
+                    currentEnvKey = newEnvKey;
+                  }
                 });
                 actualValue = envVarsParsed;
               } else if (!value) {
                 actualValue = {};
-                logMessage('No env vars provided, removing existing one.');
               } else {
                 throw new Error(
                   `Provided env vars are invalid, expected format is key1=value1,key2=value2...`
