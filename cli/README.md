@@ -247,6 +247,12 @@ Please note, that existing env vars will be overwritten.
 npm exec wl-cloud api update my-api-name env env1=value1,env2=value2
 ```
 
+The parser also supports env vars with comma separated values as in the example below
+
+```shell
+npm exec wl-cloud api update my-api-name env env1=value1,env2=inner1,inner2,inner3
+```
+
 If you want to remove all env vars and only add the provided ones, use example below
 
 ```shell
