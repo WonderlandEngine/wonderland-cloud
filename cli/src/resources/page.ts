@@ -19,6 +19,12 @@ export interface UploadPageResponse {
   projectDomain: string;
 }
 
+export interface ApiEntry {
+  name: string;
+  path: string;
+  stripPrefix: boolean;
+}
+
 export interface Page {
   id: string;
   /*
@@ -45,6 +51,7 @@ export interface Page {
   starredBy: string[];
   apiNames: string[];
   apiPaths: string[];
+  apis: ApiEntry[];
 }
 
 /**
@@ -224,6 +231,7 @@ export class PageClient {
         body: JSON.stringify({
           ...existingPage,
           subscriptionId: validSubExists.id,
+          version: 1,
         }),
         headers: {
           authorization: this.authToken,
