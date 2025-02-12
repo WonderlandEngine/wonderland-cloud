@@ -316,7 +316,7 @@ npm exec wl-cloud api create my-api-name 80 strm/helloworld-http eyJhdXRocyI6eyJ
 ```
 
 Creating an api with env vars and docker config
-[api.ts](src/resources/api.ts)
+
 ```shell
 npm exec wl-cloud api create my-api-name 80 strm/helloworld-http env1=value1,env2=value2 eyJhdXRocyI6eyJodHRwczovL2luZGV4LmRvY2tlci5pby92MS8iOnsidXNlcm5hbWUiOiJ4eHgiLCJwYXNzd29yZCI6Inh4eCIsImVtYWlsIjoieW91cm1haWxAeW91cmRvbWFpbi5jb20iLCJhdXRoIjoiZUhoNE9uaDRlQT09In19fQ 
 ```
