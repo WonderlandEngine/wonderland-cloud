@@ -236,6 +236,40 @@ const saveDeploymentConfig = (
   );
 };
 
+const parseEnvVars = (endVarsString: string) => {
+  const envVarsParsed: { [k: string]: string } = {};
+  // first split by =;
+  const splitted = endVarsString.split('=');
+
+  let currentEnvValue = '';
+  let currentEnvKey = '';
+  let newEnvKey = '';
+
+  splitted.forEach((value, index) => {
+    if (index === 0) {
+      currentEnvKey = value;
+    } else {
+      const split2 = value.split(',');
+      // we reached the end
+      if (split2.length === 1) {
+        envVarsParsed[currentEnvKey] = split2[0];
+        return;
+      }
+      // we reached the end
+      if (index !== splitted.length - 1) {
+        newEnvKey = split2.splice(split2.length - 1)[0];
+      }
+      currentEnvValue = split2.join(',');
+    }
+
+    if (currentEnvValue) {
+      envVarsParsed[currentEnvKey] = currentEnvValue;
+      currentEnvKey = newEnvKey;
+    }
+  });
+  return envVarsParsed;
+};
+
 const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
   // arguments is everything after the
   const commandArguments = command.arguments as string[];
@@ -540,39 +574,8 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           }
 
           const actualEnvVars = envVars.includes('=') ? envVars : '';
-          const envVarsParsed: { [k: string]: string } = {};
-          if (actualEnvVars) {
-            const envVarsParsed: { [k: string]: string } = {};
-            // first split by =;
-            const splitted = actualEnvVars.split('=');
-
-            let currentEnvValue = '';
-            let currentEnvKey = '';
-            let newEnvKey = '';
-
-            splitted.forEach((value, index) => {
-              if (index === 0) {
-                currentEnvKey = value;
-              } else {
-                const split2 = value.split(',');
-                // we reached the end
-                if (split2.length === 1) {
-                  envVarsParsed[currentEnvKey] = split2[0];
-                  return;
-                }
-                // we reached the end
-                if (index !== splitted.length - 1) {
-                  newEnvKey = split2.splice(split2.length - 1)[0];
-                }
-                currentEnvValue = split2.join(',');
-              }
-
-              if (currentEnvValue) {
-                envVarsParsed[currentEnvKey] = currentEnvValue;
-                currentEnvKey = newEnvKey;
-              }
-            });
-          }
+          const envVarsParsed: { [k: string]: string } =
+            parseEnvVars(actualEnvVars);
           const createdApi = await client.api?.create({
             name: apiName2,
             port: Number(port),
@@ -603,37 +606,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           switch (key) {
             case 'env':
               if (value && value.includes('=')) {
-                const envVarsParsed: { [k: string]: string } = {};
-                // first split by =;
-                const splitted = value.split('=');
-
-                let currentEnvValue = '';
-                let currentEnvKey = '';
-                let newEnvKey = '';
-
-                splitted.forEach((value, index) => {
-                  if (index === 0) {
-                    currentEnvKey = value;
-                  } else {
-                    const split2 = value.split(',');
-                    // we reached the end
-                    if (split2.length === 1) {
-                      envVarsParsed[currentEnvKey] = split2[0];
-                      return;
-                    }
-                    // we reached the end
-                    if (index !== splitted.length - 1) {
-                      newEnvKey = split2.splice(split2.length - 1)[0];
-                    }
-                    currentEnvValue = split2.join(',');
-                  }
-
-                  if (currentEnvValue) {
-                    envVarsParsed[currentEnvKey] = currentEnvValue;
-                    currentEnvKey = newEnvKey;
-                  }
-                });
-                actualValue = envVarsParsed;
+                actualValue = parseEnvVars(value);
               } else if (!value) {
                 actualValue = {};
               } else {
