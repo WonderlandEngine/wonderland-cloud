@@ -324,12 +324,26 @@ npm exec wl-cloud api create my-api-name 80 strm/helloworld-http env1=value1,env
 ### Adding an api route to a page
 
 If you want to add a new api route to a page deployment, you need to have the `Pages with Apis` subscription.
-Then you can run this command to deploy your `my-api-name` at `my-api-path` on your `page-name`
+Then you can run this command to deploy your `my-api-name` at `my-api-path` on your `page-name`. The `skipPrefix` value is optional and is
+`false` per default. By setting `stripPrefix` to `true`, the api path will be removed from the forwarded request url.
+
 ```shell
-npm exec wl-cloud page add-api page-name my-api-name my-path
+npm exec wl-cloud page add-api page-name my-api-name my-path [skipPrefix]
 ```
 
-This will publish your api on the `https://page-name.cloud.wondeland.dev/my-path` url
+Example router with `stripPrefix` set to `false` for an api on api path `example-api-path`
+
+```ts
+router.get('/example-api-path/hello-world', (req, res) => res.status(200).json({message: 'hello world'}));
+```
+
+Example router with `stripPrefix` set to `true` for an api on api path `example-api-path`
+
+```ts
+router.get('/hello-world', (req, res) => res.status(200).json({message: 'hello world'}));
+```
+
+This will publish your api on the `https://page-name.cloud.wondeland.dev/my-path` url.
 
 ### Removing an api route from a page
 

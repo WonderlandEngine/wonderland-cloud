@@ -351,7 +351,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
       }
       break;
     case CLI_RESOURCES.PAGE:
-      const [pageName, apiName, apiPath] = commandArguments;
+      const [pageName, apiName, apiPath, stripPrefix] = commandArguments;
       switch (commandVerb) {
         case PAGES_COMMANDS.GET:
           const getProjectSettings = validateAndGetUpdateArgs(
@@ -454,19 +454,26 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
         case PAGES_COMMANDS.ADD_API:
           if (!pageName) {
             throw Error(
-              'no page name provided as third argument, wl-cloud page add-api <pagename> <apiname> <apipath>'
+              'no page name provided as third argument, wl-cloud page add-api <pagename> <apiname> <apipath> [<stripPrefix>]'
             );
           }
           if (!apiName) {
             throw Error(
-              'no apiName provided as fourth argument, wl-cloud page add-api <pagename> <apiname> <apipath>'
+              'no apiName provided as fourth argument, wl-cloud page add-api <pagename> <apiname> <apipath> [<stripPrefix>]'
             );
           }
           if (!apiPath) {
             throw Error(
-              'no apiPath provided as fifth argument, wl-cloud page add-api <pagename> <apiname> <apipath>'
+              'no apiPath provided as fifth argument, wl-cloud page add-api <pagename> <apiname> <apipath> [<stripPrefix>]'
             );
           }
+
+          if (!stripPrefix) {
+            logMessage(
+              'no stripPrefix provided as sixth argument, using false as default value, wl-cloud page add-api <pagename> <apiname> <apipath> [<stripPrefix>]'
+            );
+          }
+
           const validPath = /^[a-z](([a-z]|\d)-?([a-z]|\d)?){0,20}[a-z]/gm.test(
             apiPath
           );
@@ -476,41 +483,53 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             );
           }
           logMessage('adding api routing', pageName, apiName, apiPath);
-          const intialPageState = await client.page?.get(pageName);
-          if (!intialPageState) {
+          const initialPageState = await client.page?.get(pageName);
+          if (!initialPageState) {
             throw new Error('could not find desired page');
           }
-          if (intialPageState.apiNames) {
-            intialPageState.apiNames.push(apiName);
-            intialPageState.apiPaths.push(apiPath);
+          if (initialPageState.apis) {
+            initialPageState.apis.push({
+              name: apiName,
+              path: apiPath,
+              stripPrefix: stripPrefix === 'true',
+            });
           } else {
-            intialPageState.apiNames = [apiName];
-            intialPageState.apiPaths = [apiPath];
+            initialPageState.apis = [
+              {
+                name: apiName,
+                path: apiPath,
+                stripPrefix: stripPrefix === 'true',
+              },
+            ];
           }
 
-          const newState = await client.page?.modifyApis(intialPageState);
+          const newState = await client.page?.modifyApis(initialPageState);
           logMessage('added new api routing to page', newState);
           break;
         case PAGES_COMMANDS.DELETE_API:
           if (!pageName) {
             throw Error(
-              'no page name provided as third argument, wl-cloud page delete-api <pagename> <apiname> <apipath>'
+              'no page name provided as third argument, wl-cloud page delete-api <pagename> <apiname>'
             );
           }
           if (!apiName) {
             throw Error(
-              'no apiName provided as fourth argument, wl-cloud page delete-api <pagename> <apiname> <apipath>'
+              'no apiName provided as fourth argument, wl-cloud page delete-api <pagename> <apiname>'
             );
           }
-          const intialPageState2 = await client.page?.get(pageName);
-          if (!intialPageState2) {
+          const initialPageState2 = await client.page?.get(pageName);
+          if (!initialPageState2) {
             throw new Error('could not find desired page');
           }
-          if (intialPageState2.apiNames) {
-            const existingApi = intialPageState2.apiNames.indexOf(apiName);
-            if (existingApi > -1) {
-              intialPageState2.apiNames.splice(existingApi, 1);
-              intialPageState2.apiPaths.splice(existingApi, 1);
+          if (initialPageState2.apis) {
+            let existingApiIndex = -1;
+            initialPageState2.apis.forEach((api, index) => {
+              if (api.name === apiName) {
+                existingApiIndex = index;
+              }
+            });
+            if (existingApiIndex > -1) {
+              initialPageState2.apis.splice(existingApiIndex, 1);
             } else {
               logMessage(
                 'Nothing to do, page does not contain any apis linked'
@@ -521,7 +540,7 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
             logMessage('Nothing to do, page does not contain any apis linked');
             break;
           }
-          const newState2 = await client.page?.modifyApis(intialPageState2);
+          const newState2 = await client.page?.modifyApis(initialPageState2);
           logMessage('removed apiRouting from API', newState2);
           break;
       }
