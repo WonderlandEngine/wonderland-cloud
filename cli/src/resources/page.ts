@@ -329,7 +329,7 @@ export class PageClient {
           !entry.endsWith('-LoadingScreen.bin');
       }
       if (!bundleExists) {
-        bundleExists = entry.endsWith('-bundle.js');
+        bundleExists = entry.endsWith('bundle.js');
       }
       if (!indexHtmlExists) {
         indexHtmlExists = entry.endsWith('index.html');

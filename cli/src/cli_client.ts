@@ -236,6 +236,40 @@ const saveDeploymentConfig = (
   );
 };
 
+const parseEnvVars = (endVarsString: string) => {
+  const envVarsParsed: { [k: string]: string } = {};
+  // first split by =;
+  const splitted = endVarsString.split('=');
+
+  let currentEnvValue = '';
+  let currentEnvKey = '';
+  let newEnvKey = '';
+
+  splitted.forEach((value, index) => {
+    if (index === 0) {
+      currentEnvKey = value;
+    } else {
+      const split2 = value.split(',');
+      // we reached the end
+      if (split2.length === 1) {
+        envVarsParsed[currentEnvKey] = split2[0];
+        return;
+      }
+      // we reached the end
+      if (index !== splitted.length - 1) {
+        newEnvKey = split2.splice(split2.length - 1)[0];
+      }
+      currentEnvValue = split2.join(',');
+    }
+
+    if (currentEnvValue) {
+      envVarsParsed[currentEnvKey] = currentEnvValue;
+      currentEnvKey = newEnvKey;
+    }
+  });
+  return envVarsParsed;
+};
+
 const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
   // arguments is everything after the
   const commandArguments = command.arguments as string[];
@@ -540,13 +574,8 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           }
 
           const actualEnvVars = envVars.includes('=') ? envVars : '';
-          const envVarsParsed: { [k: string]: string } = {};
-          if (actualEnvVars) {
-            actualEnvVars.split(',').forEach((envVar) => {
-              const [key, value] = envVar.split('=');
-              envVarsParsed[key] = value;
-            });
-          }
+          const envVarsParsed: { [k: string]: string } =
+            parseEnvVars(actualEnvVars);
           const createdApi = await client.api?.create({
             name: apiName2,
             port: Number(port),
@@ -577,15 +606,9 @@ const evalCommandArgs = async (command: ResourceCommandAndArguments) => {
           switch (key) {
             case 'env':
               if (value && value.includes('=')) {
-                const envVarsParsed: { [k: string]: string } = {};
-                value.split(',').forEach((envVar) => {
-                  const [envKey, envValue] = envVar.split('=');
-                  envVarsParsed[envKey] = envValue;
-                });
-                actualValue = envVarsParsed;
+                actualValue = parseEnvVars(value);
               } else if (!value) {
                 actualValue = {};
-                logMessage('No env vars provided, removing existing one.');
               } else {
                 throw new Error(
                   `Provided env vars are invalid, expected format is key1=value1,key2=value2...`
