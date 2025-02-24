@@ -68,7 +68,6 @@ export class ServerClient extends EventEmitter {
   subscriptionClient: SubscriptionClient;
   operationsClient: OperationsClient;
 
-
   constructor(cloudConfig: Partial<ServerConfig>) {
     super();
     const mergedConfig = merge({}, defaultConfig, cloudConfig);
@@ -541,9 +540,9 @@ export class ServerClient extends EventEmitter {
       );
       if (response.status < 400) {
         const deleteJob = await response.json();
-          await this.operationsClient.waitUntilJobHasFinished<CloudServer>(
-            deleteJob.jobId
-          );
+        await this.operationsClient.waitUntilJobHasFinished<CloudServer>(
+          deleteJob.jobId
+        );
         logMessage('Deleted server', this.serverName);
         return true;
       } else {
@@ -706,7 +705,12 @@ export class ServerClient extends EventEmitter {
     formData.append('packageName', this.customPackageJson.name);
     formData.append('id', this.connectionId);
 
-    fetch(`${this.serverUrl}-develop/cli-upload`, {
+    const uploadURL = `${
+      this.config.IS_LOCAL_SERVER
+        ? (this.config.SERVER_URL as string)
+        : this.serverUrl + `-develop`
+    }/cli-upload`;
+    fetch(uploadURL, {
       method: 'POST',
       body: formData,
 
