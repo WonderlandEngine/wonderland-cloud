@@ -710,17 +710,15 @@ export class ServerClient extends EventEmitter {
         ? (this.config.SERVER_URL as string)
         : this.serverUrl + `-develop`
     }/cli-upload`;
-    fetch(uploadURL, {
+    const response = await fetch(uploadURL, {
       method: 'POST',
       body: formData,
 
       headers: {
         authorization: this.authToken,
       },
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        logMessage('Got response from server', data);
-      });
+    });
+    const json = await response.json();
+    logMessage('Got response from server', json);
   }
 }
