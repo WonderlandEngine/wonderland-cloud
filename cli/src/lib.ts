@@ -1,27 +1,27 @@
 import path from 'path';
-import { CloudConfig, getAndValidateAuthToken } from './cli_config';
-import { config as dotenvConfig } from 'dotenv';
+import {CloudConfig, getAndValidateAuthToken} from './cli_config';
+import {config as dotenvConfig} from 'dotenv';
 import process from 'process';
 import merge from 'lodash.merge';
-import { debugMessage, logMessage } from './utils';
-import { PageClient } from './resources/page';
-import { ServerClient } from './resources/server';
-import { CLI_RESOURCES } from './constants';
-import { SubscriptionClient } from './resources/subscriptions';
-import { ApisClient } from './resources/api';
+import {debugMessage, logMessage} from './utils';
+import {PageClient} from './resources/page';
+import {ServerClient} from './resources/server';
+import {CLI_RESOURCES} from './constants';
+import {SubscriptionClient} from './resources/subscriptions';
+import {ApisClient} from './resources/api';
 
 dotenvConfig();
 
 const defaultConfig: Partial<CloudConfig> = {
-  WORK_DIR: process.env.WORK_DIR || process.cwd(),
-  COMMANDER_URL: process.env.COMMANDER_URL || 'https://cloud.wonderland.dev',
-  IS_LOCAL_SERVER: process.env.IS_LOCAL_SERVER === 'true',
-  PAGE_CONFIG_LOCATION: process.env.PAGE_CONFIG_LOCATION,
-  PAGE_ACCESS: process.env.ACCESS,
-  WLE_CREDENTIALS_LOCATION: path.join(
-    process.env.AUTH_JSON_LOCATION ||
-      path.join(process.cwd(), 'wle-apitoken.json')
-  ),
+    WORK_DIR: process.env.WORK_DIR || process.cwd(),
+    COMMANDER_URL: process.env.COMMANDER_URL || 'https://cloud.wonderland.dev',
+    IS_LOCAL_SERVER: process.env.IS_LOCAL_SERVER === 'true',
+    PAGE_CONFIG_LOCATION: process.env.PAGE_CONFIG_LOCATION,
+    PAGE_ACCESS: process.env.ACCESS,
+    WLE_CREDENTIALS_LOCATION: path.join(
+        process.env.AUTH_JSON_LOCATION ||
+        path.join(process.cwd(), 'wle-apitoken.json')
+    ),
 };
 
 /**
@@ -34,64 +34,74 @@ const defaultConfig: Partial<CloudConfig> = {
  * For configuration options see {@link CliClientArgs}
  */
 export class CloudClient {
-  config: Partial<CloudConfig>;
-  page?: PageClient;
-  server?: ServerClient;
-  subscription?: SubscriptionClient;
-  api?: ApisClient;
-  authToken: string;
+    config: Partial<CloudConfig>;
+    page?: PageClient;
+    server?: ServerClient;
+    subscription?: SubscriptionClient;
+    api?: ApisClient;
+    authToken: string;
 
-  constructor(
-    cloudConfig: Partial<CloudConfig>,
-    enabledResource?: CLI_RESOURCES
-  ) {
-    this.config = merge({}, defaultConfig, cloudConfig);
-    this.authToken = getAndValidateAuthToken(this.config);
-    debugMessage('initialized CloudClient with config', this.config);
-    // we will throw an error if the work directory does not contain a package.json1
-    if (enabledResource) {
-      switch (enabledResource) {
-        case CLI_RESOURCES.SERVER:
-          this.server = new ServerClient(this.config);
-          break;
-        case CLI_RESOURCES.PAGE:
-          this.page = new PageClient(this.config);
-          break;
-        case CLI_RESOURCES.SUBSCRIPTION:
-          this.subscription = new SubscriptionClient(this.config);
-          break;
-        case CLI_RESOURCES.API:
-          this.api = new ApisClient(this.config);
-          break;
-        default:
-          logMessage('unknown resource provided', enabledResource);
-          throw Error(`unknown resource ${enabledResource} provided`);
-      }
-    } else {
-      this.server = new ServerClient(this.config);
-      this.page = new PageClient(this.config);
-      this.api = new ApisClient(this.config);
+    constructor(
+        cloudConfig: Partial<CloudConfig>,
+        enabledResource?: CLI_RESOURCES
+    ) {
+        this.config = merge({}, defaultConfig, cloudConfig);
+        this.authToken = getAndValidateAuthToken(this.config);
+        debugMessage('initialized CloudClient with config', this.config);
+        // we will throw an error if the work directory does not contain a package.json1
+        if (enabledResource) {
+            switch (enabledResource) {
+                case CLI_RESOURCES.SERVER:
+                    this.server = new ServerClient(this.config);
+                    break;
+                case CLI_RESOURCES.PAGE:
+                    this.page = new PageClient(this.config);
+                    break;
+                case CLI_RESOURCES.SUBSCRIPTION:
+                    this.subscription = new SubscriptionClient(this.config);
+                    break;
+                case CLI_RESOURCES.API:
+                    this.api = new ApisClient(this.config);
+                    break;
+                default:
+                    logMessage('unknown resource provided', enabledResource);
+                    throw Error(`unknown resource ${enabledResource} provided`);
+            }
+        } else {
+            this.server = new ServerClient(this.config);
+            this.page = new PageClient(this.config);
+            this.api = new ApisClient(this.config);
+        }
     }
-  }
 
-  /**
-   * Helper function to check the validity of the provided Wonderland API auth token
-   */
-  async validateAuthToken() {
-    const response = await fetch('https://api.wonderlandengine.com/user/me', {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: this.authToken,
-        'User-Agent': 'wonderland-cloud-sdk',
-      },
-    });
-    if (response.status === 200) {
-      return true;
-    } else {
-      logMessage(
-        'Validation of the auth token failed, please make sure it exists and is not expired!'
-      );
-      throw Error('provided auth token is not valid!');
+    /**
+     * Helper function to check the validity of the provided Wonderland API auth token
+     */
+    async validateAuthToken(retry = 0):Promise<boolean> {
+        try {
+            const response = await fetch('https://api.wonderlandengine.com/user/me', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: this.authToken,
+                    'User-Agent': 'wonderland-cloud-sdk',
+                },
+            });
+            if (response.status === 200) {
+                return true;
+            } else {
+                logMessage(
+                    'Validation of the auth token failed, please make sure it exists and is not expired!'
+                );
+                throw Error('provided auth token is not valid!');
+            }
+        } catch (error) {
+            logMessage('Error while validating auth token:', error);
+            if (retry < 3) {
+                logMessage('Retrying auth token validation...');
+                return this.validateAuthToken(retry + 1);
+            }
+            throw error;
+        }
+
     }
-  }
 }
