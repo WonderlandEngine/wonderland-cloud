@@ -1,4 +1,9 @@
-import { asyncTimeout, debugMessage, logMessage } from '../utils';
+import {
+  asyncTimeout,
+  debugMessage,
+  fetchWithJSON,
+  logMessage,
+} from '../utils';
 import { getAndValidateAuthToken } from '../cli_config';
 import ws from 'ws';
 import process from 'process';
@@ -161,7 +166,7 @@ export class ServerClient extends EventEmitter {
   }
 
   async #sendStartServerSignal(): Promise<boolean> {
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/servers/start`,
       {
         body: JSON.stringify({
@@ -359,7 +364,7 @@ export class ServerClient extends EventEmitter {
 
   async #testDeployment() {
     logMessage('Testing deployment...');
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/servers/test-deployment`,
       {
         method: 'POST',
@@ -383,7 +388,7 @@ export class ServerClient extends EventEmitter {
 
   async #validateDeployment() {
     logMessage('Validating deployment...');
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/servers/validate-deployment`,
       {
         method: 'POST',
@@ -423,13 +428,14 @@ export class ServerClient extends EventEmitter {
 
     const headers: { [key: string]: any } = {
       authorization: this.authToken,
+      'content-type': 'multipart/form-data',
     };
     if (update) {
       formData.append('upgradeServer', 'true');
       headers['use-server-jobs'] = 'true';
     }
 
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/servers/file`,
       {
         method: 'POST',
@@ -468,13 +474,16 @@ export class ServerClient extends EventEmitter {
    */
   async list(): Promise<CloudServer[]> {
     try {
-      const response = await fetch(`${this.config.COMMANDER_URL}/api/servers`, {
-        method: 'GET',
-        headers: {
-          authorization: this.authToken,
-          'content-type': 'application/json',
-        },
-      });
+      const response = await fetchWithJSON(
+        `${this.config.COMMANDER_URL}/api/servers`,
+        {
+          method: 'GET',
+          headers: {
+            authorization: this.authToken,
+            'content-type': 'application/json',
+          },
+        }
+      );
       const listResponse = await response.json();
       if (response.status < 400) {
         return listResponse;
@@ -496,7 +505,7 @@ export class ServerClient extends EventEmitter {
    */
   async get({ serverName }: { serverName: string }): Promise<CloudServer> {
     try {
-      const response = await fetch(
+      const response = await fetchWithJSON(
         `${this.config.COMMANDER_URL}/api/servers/${serverName}`,
         {
           method: 'GET',
@@ -528,7 +537,7 @@ export class ServerClient extends EventEmitter {
    */
   async delete(serverName?: string) {
     try {
-      const response = await fetch(
+      const response = await fetchWithJSON(
         `${this.config.COMMANDER_URL}/api/servers/${serverName}`,
         {
           method: 'DELETE',
@@ -614,7 +623,7 @@ export class ServerClient extends EventEmitter {
       packageName = packageN;
     }
 
-    const createServerJob = await fetch(
+    const createServerJob = await fetchWithJSON(
       this.config.COMMANDER_URL + '/api/servers',
       {
         method: 'POST', // *GET, POST, PUT, DELETE, etc.
@@ -710,12 +719,13 @@ export class ServerClient extends EventEmitter {
         ? (this.config.SERVER_URL as string)
         : this.serverUrl + `-develop`
     }/cli-upload`;
-    const response = await fetch(uploadURL, {
+    const response = await fetchWithJSON(uploadURL, {
       method: 'POST',
       body: formData,
 
       headers: {
         authorization: this.authToken,
+        'content-type': 'multipart/form-data',
       },
     });
     const json = await response.json();
