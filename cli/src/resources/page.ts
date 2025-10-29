@@ -1,5 +1,5 @@
 import { CloudConfig, getAndValidateAuthToken } from '../cli_config';
-import { logMessage, PartialBy } from '../utils';
+import { fetchWithJSON, logMessage, PartialBy } from '../utils';
 import path from 'path';
 import compressing from 'compressing';
 import * as fs from 'fs';
@@ -224,7 +224,7 @@ export class PageClient {
         'could not find a valid subscription for creating a new server'
       );
     }
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/pages/apis`,
       {
         method: 'PUT',
@@ -374,13 +374,14 @@ export class PageClient {
     formData.append('projectName', projectName);
     formData.append('isPublic', `${isPublic}`);
     formData.append('withThreads', `${withThreads}`);
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/pages/file`,
       {
         method: create ? 'POST' : 'PUT',
         body: formData,
         headers: {
           authorization: this.authToken,
+          'content-type': 'multipart/form-data',
         },
       }
     );

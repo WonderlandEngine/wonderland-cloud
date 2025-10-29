@@ -1,5 +1,5 @@
 import { CloudConfig, getAndValidateAuthToken } from '../cli_config';
-import { debugMessage, logMessage, PartialBy } from '../utils';
+import { debugMessage, fetchWithJSON, logMessage, PartialBy } from '../utils';
 import path from 'path';
 import compressing from 'compressing';
 import * as fs from 'fs';
@@ -57,7 +57,7 @@ export class ApisClient {
    */
   async delete(apiName: string): Promise<void> {
     debugMessage('deleting api ', apiName);
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/apis/${apiName}`,
       {
         method: 'DELETE',
@@ -81,12 +81,15 @@ export class ApisClient {
    */
   async list(): Promise<WleApi[]> {
     debugMessage('Loading apis... ');
-    const response = await fetch(`${this.config.COMMANDER_URL}/api/apis`, {
-      method: 'GET',
-      headers: {
-        authorization: this.authToken,
-      },
-    });
+    const response = await fetchWithJSON(
+      `${this.config.COMMANDER_URL}/api/apis`,
+      {
+        method: 'GET',
+        headers: {
+          authorization: this.authToken,
+        },
+      }
+    );
     const serverData = await response.json();
     if (response.status < 300) {
       debugMessage('Successfully got apis', serverData);
@@ -101,7 +104,7 @@ export class ApisClient {
    * Get a single API deployment
    */
   async get(apiName: string): Promise<WleApi> {
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/apis/${apiName}`,
       {
         method: 'GET',
@@ -151,17 +154,20 @@ export class ApisClient {
         'could not find a valid subscription for creating a new server'
       );
     }
-    const response = await fetch(`${this.config.COMMANDER_URL}/api/apis`, {
-      method: 'POST',
-      headers: {
-        authorization: this.authToken,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        ...createApiData,
-        subscription: validSubExists.id,
-      }),
-    });
+    const response = await fetchWithJSON(
+      `${this.config.COMMANDER_URL}/api/apis`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: this.authToken,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...createApiData,
+          subscription: validSubExists.id,
+        }),
+      }
+    );
     const serverData = await response.json();
     if (response.status < 300) {
       debugMessage('Successfully got apis', serverData);
@@ -181,7 +187,7 @@ export class ApisClient {
     [key: string]: any;
     updateEnv: boolean;
   }): Promise<WleApi> {
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/apis/${data.name}`,
       {
         method: 'PUT',

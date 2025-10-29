@@ -3,7 +3,7 @@ import merge from 'lodash.merge';
 import { getAndValidateAuthToken } from '../cli_config';
 import path from 'path';
 import process from 'process';
-import { logMessage } from '../utils';
+import { fetchWithJSON, logMessage } from '../utils';
 
 export enum SUBSCRIPTION_TYPE {
   NORMAL = 0,
@@ -82,7 +82,7 @@ export class SubscriptionClient {
    */
   async list(): Promise<SubscriptionFe[]> {
     logMessage('Listing subscriptions...');
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/subscriptions`,
       {
         method: 'GET',

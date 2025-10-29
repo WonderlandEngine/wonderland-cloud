@@ -1,5 +1,5 @@
 import { CloudConfig, getAndValidateAuthToken } from '../cli_config';
-import { debugMessage, logMessage, PartialBy } from '../utils';
+import { debugMessage, fetchWithJSON, logMessage, PartialBy } from '../utils';
 import path from 'path';
 import compressing from 'compressing';
 import * as fs from 'fs';
@@ -58,7 +58,7 @@ export class OperationsClient {
    */
   async get(jobId: string): Promise<Operation> {
     debugMessage('Loading operation status... ', jobId);
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/operations/${jobId}`,
       {
         method: 'GET',
