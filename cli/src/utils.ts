@@ -50,11 +50,20 @@ export const fetchWithJSON = async (
     return response;
   } catch (err) {
     if (attempt < 2 && JSON.stringify(err as Error).includes('ECONNRESET')) {
-      logMessage(
-        `Fetch connection reset error for ${url} ${
-          options.method || 'GET'
-        }, retrying...`
-      );
+      if (JSON.stringify(err as Error).includes('ENETUNREACH')) {
+        logMessage(
+          `Fetch ENETUNREACH error for ${url} ${
+            options.method || 'GET'
+          }, retrying...`
+        );
+      }
+      if (JSON.stringify(err as Error).includes('ECONNRESET')) {
+        logMessage(
+          `Fetch ECONNRESET error for ${url} ${
+            options.method || 'GET'
+          }, retrying...`
+        );
+      }
       return fetchWithJSON(url, options, attempt + 1);
     }
     throw err;
