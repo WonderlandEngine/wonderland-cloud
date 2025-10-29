@@ -1,4 +1,5 @@
 const isDebug = process.env.LOG_LEVEL === 'debug';
+import { v4 } from 'uuid';
 
 export const logMessage = (...messages: any[]) => {
   console.log(new Date().toLocaleString(), ...messages);
@@ -18,12 +19,13 @@ export const fetchWithJSON = async (
   attempt = 0
 ): Promise<Response> => {
   const initialHeaders = options.noContentType
-    ? {}
+    ? { requestId: v4() }
     : {
         'content-type': 'application/json',
+        requestId: v4(),
       };
   try {
-    debugMessage('performing fetch', url, options);
+    debugMessage('performing fetch', initialHeaders.requestId, url, options);
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -31,7 +33,12 @@ export const fetchWithJSON = async (
         ...(options.headers || {}),
       },
     });
-    debugMessage('fetch finished', url, response.status);
+    debugMessage(
+      'fetch finished',
+      initialHeaders.requestId,
+      url,
+      response.status
+    );
     if (response.status > 299) {
       logMessage(
         `Failed to fetch ${url} ${options.method || 'GET'} - status code: ${
@@ -51,7 +58,7 @@ export const fetchWithJSON = async (
     }
     return response;
   } catch (err) {
-    logMessage('fetch failed', url);
+    logMessage('fetch failed', initialHeaders.requestId, url);
     if (attempt < 2 && JSON.stringify(err as Error).includes('ECONNRESET')) {
       if (JSON.stringify(err as Error).includes('ENETUNREACH')) {
         logMessage(
