@@ -441,6 +441,7 @@ export class ServerClient extends EventEmitter {
         method: 'POST',
         body: formData,
         headers,
+        noContentType: true,
       }
     );
 
@@ -722,11 +723,11 @@ export class ServerClient extends EventEmitter {
     const response = await fetchWithJSON(uploadURL, {
       method: 'POST',
       body: formData,
-
       headers: {
         authorization: this.authToken,
         'content-type': 'multipart/form-data',
       },
+      noContentType: true,
     });
     const json = await response.json();
     logMessage('Got response from server', json);

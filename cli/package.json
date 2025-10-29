@@ -1,6 +1,6 @@
 {
   "name": "@wonderlandcloud/cli",
-  "version": "0.2.24",
+  "version": "0.2.27",
   "description": "CLI client and node library for interaction with Wonderland Cloud services.",
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
@@ -54,7 +54,7 @@
     "compressing": "^1.10.0",
     "dotenv": "16.3.1",
     "lodash.merge": "^4.6.2",
-    "uuid": "^9.0.1",
+    "uuid": "^13.0.0",
     "ws": "8.14.2"
   }
 }
