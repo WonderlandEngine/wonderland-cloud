@@ -722,11 +722,10 @@ export class ServerClient extends EventEmitter {
     const response = await fetchWithJSON(uploadURL, {
       method: 'POST',
       body: formData,
-
       headers: {
         authorization: this.authToken,
-        'content-type': undefined,
       },
+      noContentType: true,
     });
     const json = await response.json();
     logMessage('Got response from server', json);
