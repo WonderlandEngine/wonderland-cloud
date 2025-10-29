@@ -381,8 +381,8 @@ export class PageClient {
         body: formData,
         headers: {
           authorization: this.authToken,
-          'content-type': 'multipart/form-data',
         },
+        noContentType: true,
       }
     );
     const serverData = await response.json();

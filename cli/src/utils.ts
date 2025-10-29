@@ -14,13 +14,16 @@ export const asyncTimeout = async (duration: number) => {
 
 export const fetchWithJSON = async (
   url: string,
-  options: Record<string, any> = {},
+  options: Record<string, any> = { noContentType: false },
   attempt = 0
 ): Promise<Response> => {
-  const initialHeaders = {
-    'Content-Type': 'application/json',
-  };
+  const initialHeaders = options.noContentType
+    ? {}
+    : {
+        'content-type': 'application/json',
+      };
   try {
+    debugMessage('performing fetch', url, options);
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -28,6 +31,7 @@ export const fetchWithJSON = async (
         ...(options.headers || {}),
       },
     });
+    debugMessage('fetch finished', url, response.status);
     if (response.status > 299) {
       logMessage(
         `Failed to fetch ${url} ${options.method || 'GET'} - status code: ${
@@ -36,19 +40,18 @@ export const fetchWithJSON = async (
       );
       try {
         let json = await response.json();
-        //@ts-expect-error recreate json promise
-        response.json = new Promise((resolve) => resolve(json));
+        response.json = () => new Promise((resolve) => resolve(json));
         logMessage(`Response ${json}`);
       } catch (err) {
         logMessage('Failed to parse response as JSON', err);
         let text = await response.text();
         logMessage(`Response text: ${text}`);
-        //@ts-expect-error recreate text promise
-        response.text = new Promise((resolve) => resolve(text));
+        response.text = () => new Promise((resolve) => resolve(text));
       }
     }
     return response;
   } catch (err) {
+    logMessage('fetch failed', url);
     if (attempt < 2 && JSON.stringify(err as Error).includes('ECONNRESET')) {
       if (JSON.stringify(err as Error).includes('ENETUNREACH')) {
         logMessage(

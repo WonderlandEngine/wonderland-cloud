@@ -428,7 +428,6 @@ export class ServerClient extends EventEmitter {
 
     const headers: { [key: string]: any } = {
       authorization: this.authToken,
-      'content-type': 'multipart/form-data',
     };
     if (update) {
       formData.append('upgradeServer', 'true');
@@ -441,6 +440,7 @@ export class ServerClient extends EventEmitter {
         method: 'POST',
         body: formData,
         headers,
+        noContentType: true,
       }
     );
 
@@ -725,7 +725,7 @@ export class ServerClient extends EventEmitter {
 
       headers: {
         authorization: this.authToken,
-        'content-type': 'multipart/form-data',
+        'content-type': undefined,
       },
     });
     const json = await response.json();
