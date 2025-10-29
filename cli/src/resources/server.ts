@@ -173,9 +173,6 @@ export class ServerClient extends EventEmitter {
           path: this.serverName,
         }),
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
       }
     );
     if (response.status === 200) {
@@ -373,7 +370,6 @@ export class ServerClient extends EventEmitter {
         }),
         headers: {
           authorization: this.authToken,
-          'content-type': 'application/json',
         },
       }
     );
@@ -397,7 +393,6 @@ export class ServerClient extends EventEmitter {
         }),
         headers: {
           authorization: this.authToken,
-          'content-type': 'application/json',
         },
       }
     );
@@ -428,7 +423,6 @@ export class ServerClient extends EventEmitter {
 
     const headers: { [key: string]: any } = {
       authorization: this.authToken,
-      'content-type': 'multipart/form-data',
     };
     if (update) {
       formData.append('upgradeServer', 'true');
@@ -481,7 +475,6 @@ export class ServerClient extends EventEmitter {
           method: 'GET',
           headers: {
             authorization: this.authToken,
-            'content-type': 'application/json',
           },
         }
       );
@@ -640,7 +633,6 @@ export class ServerClient extends EventEmitter {
         }),
         headers: {
           authorization: this.authToken,
-          'Content-Type': 'application/json',
           'use-server-jobs': 'true',
         },
       }
@@ -725,7 +717,6 @@ export class ServerClient extends EventEmitter {
       body: formData,
       headers: {
         authorization: this.authToken,
-        'content-type': 'multipart/form-data',
       },
       noContentType: true,
     });

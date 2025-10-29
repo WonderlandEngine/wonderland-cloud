@@ -41,14 +41,16 @@ export const fetchWithJSON = async (
     );
     if (response.status > 299) {
       logMessage(
-        `Failed to fetch ${url} ${options.method || 'GET'} - status code: ${
-          response.status
-        }`
+        `Failed to fetch ${initialHeaders.requestId} ${url} ${
+          options.method || 'GET'
+        } - status code: ${response.status}`
       );
       try {
         let json = await response.json();
         response.json = () => new Promise((resolve) => resolve(json));
-        logMessage(`Response ${json}`);
+        logMessage(
+          `${initialHeaders.requestId} Response ${JSON.stringify(json)}`
+        );
       } catch (err) {
         logMessage('Failed to parse response as JSON', err);
         let text = await response.text();
