@@ -428,6 +428,7 @@ export class ServerClient extends EventEmitter {
 
     const headers: { [key: string]: any } = {
       authorization: this.authToken,
+      'content-type': 'multipart/form-data',
     };
     if (update) {
       formData.append('upgradeServer', 'true');
@@ -724,6 +725,7 @@ export class ServerClient extends EventEmitter {
       body: formData,
       headers: {
         authorization: this.authToken,
+        'content-type': 'multipart/form-data',
       },
       noContentType: true,
     });
