@@ -1,4 +1,8 @@
-import { CloudConfig, getAndValidateAuthToken } from '../cli_config';
+import {
+  CloudConfig,
+  getAndValidateAuthToken,
+  getMergedConfig,
+} from '../cli_config';
 import { fetchWithJSON, logMessage, PartialBy } from '../utils';
 import path from 'path';
 import compressing from 'compressing';
@@ -77,7 +81,7 @@ export class PageClient {
 
   // todo create dedicated projects config
   constructor(config: PageConfig) {
-    this.config = config;
+    this.config = getMergedConfig(config);
     this.authToken = getAndValidateAuthToken(this.config);
     this.operationsClient = new OperationsClient(config);
     this.subscriptionClient = new SubscriptionClient(config);
