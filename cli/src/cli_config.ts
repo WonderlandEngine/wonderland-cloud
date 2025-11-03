@@ -4,7 +4,6 @@ import * as assert from 'assert';
 import path from 'path';
 import * as fs from 'fs';
 import { parseArgs, ParseArgsConfig } from 'util';
-import { boolean } from 'yargs';
 
 const parseArgsConfig: ParseArgsConfig = {
   allowPositionals: true,
@@ -138,6 +137,11 @@ export interface CloudConfig {
   UPDATE_ENV: boolean;
 }
 
+const DefaultCloudConfig: Partial<CloudConfig> = {
+  WORK_DIR: process.cwd(),
+  COMMANDER_URL: 'https://cloud.wonderland.dev',
+};
+
 const cliConfig: Partial<CloudConfig> = {
   WLE_CREDENTIALS: args.authToken,
   WORK_DIR: args.workDir,
@@ -189,5 +193,9 @@ export const getAndValidateAuthToken = (
     cloudConfig.WLE_CREDENTIALS = apiTokenJSON.token;
   }
   return cloudConfig.WLE_CREDENTIALS as string;
+};
+
+export const getMergedConfig = (cloudConfig: Partial<CloudConfig>) => {
+  return { ...DefaultCloudConfig, ...cloudConfig } as CloudConfig;
 };
 export default cliConfig as CloudConfig;
