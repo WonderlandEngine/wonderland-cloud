@@ -60,7 +60,12 @@ export const fetchWithJSON = async (
     }
     return response;
   } catch (err) {
-    logMessage('fetch failed', initialHeaders.requestId, url);
+    logMessage(
+      'fetch failed',
+      initialHeaders.requestId,
+      url,
+      JSON.stringify(err)
+    );
     if (attempt < 2 && JSON.stringify(err as Error).includes('ECONNRESET')) {
       if (JSON.stringify(err as Error).includes('ENETUNREACH')) {
         logMessage(
