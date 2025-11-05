@@ -1,6 +1,6 @@
 {
   "name": "@wonderlandcloud/cli",
-  "version": "0.2.34",
+  "version": "0.2.35",
   "description": "CLI client and node library for interaction with Wonderland Cloud services.",
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
@@ -27,7 +27,7 @@
     "build:docs:watch": "npx typedoc --watch --out docs src/index.ts",
     "start:dev:client": "tsc-watch -p tsconfig.json --onSuccess \"node dist/cli_client.js\"",
     "start:client": "node dist/src/cli_client.js server debug -h",
-    "test": "export TEST_MODE=true && yarn jest test/**/*.test.ts test/*.test.ts --i --forceExit"
+    "test": "export TEST_MODE=true && 35yarn jest test/**/*.test.ts test/*.test.ts --i --forceExit"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
