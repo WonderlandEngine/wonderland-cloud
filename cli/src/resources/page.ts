@@ -141,7 +141,7 @@ export class PageClient {
    * @param pageName {string} your page project name
    */
   async get(pageName: string): Promise<Page> {
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/pages/${pageName}`,
       {
         method: 'GET',
@@ -165,7 +165,7 @@ export class PageClient {
    */
   async delete(projectName: string) {
     const pageNameValidated = this.#validatePageName(projectName);
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/pages/${pageNameValidated}`,
       {
         method: 'DELETE',
@@ -192,13 +192,12 @@ export class PageClient {
    * @param listPublic {boolean} whether to also list public pages or not
    */
   async list(listPublic = false): Promise<Page[]> {
-    const response = await fetch(
+    const response = await fetchWithJSON(
       `${this.config.COMMANDER_URL}/api/pages?listPublic=${listPublic}`,
       {
         method: 'GET',
         headers: {
           authorization: this.authToken,
-          'content-type': 'application/json',
         },
       }
     );
@@ -239,7 +238,6 @@ export class PageClient {
         }),
         headers: {
           authorization: this.authToken,
-          'content-type': 'application/json',
         },
       }
     );
