@@ -77,7 +77,7 @@ const parseArgsConfig: ParseArgsConfig = {
       default: true,
     },
   },
-  strict: !process.env.TEST_MODE,
+  strict: false,
 };
 
 config();
