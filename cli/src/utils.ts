@@ -55,6 +55,8 @@ export const fetchWithJSON = async (
         logMessage('Failed to parse response as JSON', err);
         let text = await response.text();
         logMessage(`Response text: ${text}`);
+        response.json = () =>
+          new Promise((resolve) => resolve({ textContent: text }));
         response.text = () => new Promise((resolve) => resolve(text));
       }
     }
