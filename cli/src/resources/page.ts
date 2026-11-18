@@ -5,6 +5,8 @@ import {
 } from '../cli_config';
 import { fetchWithJSON, logMessage, PartialBy } from '../utils';
 import path from 'path';
+import { pipeline } from 'stream/promises';
+import zlib from 'zlib';
 import compressing from 'compressing';
 import * as fs from 'fs';
 import { OperationsClient } from './operations';
@@ -73,6 +75,33 @@ export type PageConfig = PartialBy<
 /**
  * Helper class for interacting with the projects resouce.
  */
+/**
+ * gzip level for the page archive. The commander only unpacks the archive and
+ * compresses every file again when storing it, so the archive just has to
+ * survive the upload. Most of a deployment (basis/ktx2 textures, images, wasm)
+ * is already compressed, and the default level spent most of the publish time
+ * recompressing it for little gain.
+ */
+export const PAGE_ARCHIVE_GZIP_LEVEL = 1;
+
+/**
+ * Write the deployment directory as a .tar.gz archive. Every entry is prefixed
+ * with the directory name (e.g. `deploy/index.html`), which the commander
+ * strips when unpacking.
+ */
+export async function writePageArchive(
+  sourceDir: string,
+  destinationFile: string
+) {
+  const tarStream = new compressing.tar.Stream();
+  tarStream.addEntry(sourceDir);
+  await pipeline(
+    tarStream,
+    zlib.createGzip({ level: PAGE_ARCHIVE_GZIP_LEVEL }),
+    fs.createWriteStream(destinationFile)
+  );
+}
+
 export class PageClient {
   config: PageConfig;
   authToken: string;
@@ -305,6 +334,7 @@ export class PageClient {
 
   async #compressProjectFiles(deploymentDirLocation: string) {
     logMessage('Compressing files...');
+    const start = Date.now();
     const sourceDir = path.join(deploymentDirLocation);
     const destinationFile = path.join(
       deploymentDirLocation,
@@ -312,8 +342,14 @@ export class PageClient {
       'deploy.tar'
     );
 
-    await compressing.tgz.compressDir(sourceDir, destinationFile);
-    logMessage('Compressed files from', sourceDir, 'to', destinationFile);
+    await writePageArchive(sourceDir, destinationFile);
+    logMessage(
+      'Compressed files from',
+      sourceDir,
+      'to',
+      destinationFile,
+      `in ${((Date.now() - start) / 1000).toFixed(1)}s`
+    );
     return destinationFile;
   }
 
