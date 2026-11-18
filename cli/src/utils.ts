@@ -13,6 +13,20 @@ export const asyncTimeout = async (duration: number) => {
   return new Promise((resolve) => setTimeout(resolve, duration));
 };
 
+const RETRYABLE_NETWORK_ERRORS = [
+  'ECONNRESET',
+  'ENETUNREACH',
+  'ETIMEDOUT',
+  'EAI_AGAIN',
+  'UND_ERR_SOCKET',
+];
+
+export const getErrorCode = (err: unknown): string | undefined => {
+  const e = err as { code?: unknown; cause?: { code?: unknown } } | undefined;
+  const code = e?.cause?.code ?? e?.code;
+  return typeof code === 'string' ? code : undefined;
+};
+
 export const fetchWithJSON = async (
   url: string,
   options: Record<string, any> = { noContentType: false },
@@ -46,14 +60,14 @@ export const fetchWithJSON = async (
         } - status code: ${response.status}`
       );
       try {
-        let json = await response.json();
+        const json = await response.json();
         response.json = () => new Promise((resolve) => resolve(json));
         logMessage(
           `${initialHeaders.requestId} Response ${JSON.stringify(json)}`
         );
       } catch (err) {
         logMessage('Failed to parse response as JSON', err);
-        let text = await response.text();
+        const text = await response.text();
         logMessage(`Response text: ${text}`);
         response.json = () =>
           new Promise((resolve) => resolve({ textContent: text }));
@@ -62,27 +76,14 @@ export const fetchWithJSON = async (
     }
     return response;
   } catch (err) {
-    logMessage(
-      'fetch failed',
-      initialHeaders.requestId,
-      url,
-      JSON.stringify(err)
-    );
-    if (attempt < 2 && JSON.stringify(err as Error).includes('ECONNRESET')) {
-      if (JSON.stringify(err as Error).includes('ENETUNREACH')) {
-        logMessage(
-          `Fetch ENETUNREACH error for ${url} ${
-            options.method || 'GET'
-          }, retrying...`
-        );
-      }
-      if (JSON.stringify(err as Error).includes('ECONNRESET')) {
-        logMessage(
-          `Fetch ECONNRESET error for ${url} ${
-            options.method || 'GET'
-          }, retrying...`
-        );
-      }
+    logMessage('fetch failed', initialHeaders.requestId, url, String(err));
+    /* Node's fetch wraps socket errors: the code is on err.cause */
+    const code = getErrorCode(err);
+    if (attempt < 2 && code && RETRYABLE_NETWORK_ERRORS.includes(code)) {
+      logMessage(
+        `Fetch ${code} error for ${url} ${options.method || 'GET'}, retrying...`
+      );
+      await asyncTimeout(500 * 2 ** attempt);
       return fetchWithJSON(url, options, attempt + 1);
     }
     throw err;

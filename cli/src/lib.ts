@@ -3,7 +3,7 @@ import { CloudConfig, getAndValidateAuthToken } from './cli_config';
 import { config as dotenvConfig } from 'dotenv';
 import process from 'process';
 import merge from 'lodash.merge';
-import { debugMessage, fetchWithJSON, logMessage } from './utils';
+import { asyncTimeout, debugMessage, fetchWithJSON, logMessage } from './utils';
 import { PageClient } from './resources/page';
 import { ServerClient } from './resources/server';
 import { CLI_RESOURCES } from './constants';
@@ -40,6 +40,13 @@ export class CloudClient {
   subscription?: SubscriptionClient;
   api?: ApisClient;
   authToken: string;
+  /** Time of the last successful auth token validation, in ms since epoch */
+  private authTokenValidatedAt?: number;
+
+  /** How long a successful auth token validation is reused, in ms */
+  static AUTH_VALIDATION_CACHE_MS = 5 * 60 * 1000;
+  /** Delays between auth token validation retries on server or network errors, in ms */
+  static AUTH_RETRY_DELAYS_MS = [1000, 4000, 16000];
 
   constructor(
     cloudConfig: Partial<CloudConfig>,
@@ -75,35 +82,69 @@ export class CloudClient {
   }
 
   /**
-   * Helper function to check the validity of the provided Wonderland API auth token
+   * Helper function to check the validity of the provided Wonderland API auth token.
+   *
+   * A successful validation is cached for {@link CloudClient.AUTH_VALIDATION_CACHE_MS},
+   * so long-running processes can call this before every operation without
+   * hitting the API each time. Invalid tokens (4xx) fail immediately; server
+   * and network errors are retried with exponential backoff.
    */
-  async validateAuthToken(retry = 0): Promise<boolean> {
-    try {
-      const response = await fetchWithJSON(
-        'https://api.wonderlandengine.com/user/me',
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: this.authToken,
-            'User-Agent': 'wonderland-cloud-sdk',
-          },
-        }
-      );
-      if (response.status === 200) {
+  async validateAuthToken(): Promise<boolean> {
+    if (
+      this.authTokenValidatedAt !== undefined &&
+      Date.now() - this.authTokenValidatedAt <
+        CloudClient.AUTH_VALIDATION_CACHE_MS
+    ) {
+      return true;
+    }
+
+    const delays = CloudClient.AUTH_RETRY_DELAYS_MS;
+    for (let attempt = 0; ; ++attempt) {
+      let response: Response | undefined;
+      let error: unknown;
+      try {
+        response = await fetchWithJSON(
+          'https://api.wonderlandengine.com/user/me',
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: this.authToken,
+              'User-Agent': 'wonderland-cloud-sdk',
+            },
+          }
+        );
+      } catch (err) {
+        error = err;
+      }
+
+      if (response?.status === 200) {
+        this.authTokenValidatedAt = Date.now();
         return true;
-      } else {
+      }
+
+      /* The token itself was rejected: retrying will not help */
+      if (response && response.status < 500 && response.status !== 429) {
         logMessage(
           'Validation of the auth token failed, please make sure it exists and is not expired!'
         );
         throw Error('provided auth token is not valid!');
       }
-    } catch (error) {
-      logMessage('Error while validating auth token:', error);
-      if (retry < 3) {
-        logMessage('Retrying auth token validation...');
-        return this.validateAuthToken(retry + 1);
+
+      if (error) {
+        logMessage('Error while validating auth token:', error);
       }
-      throw error;
+      if (attempt >= delays.length) {
+        throw (
+          error ??
+          Error(
+            `auth token validation failed with status code ${response?.status}`
+          )
+        );
+      }
+      logMessage(
+        `Retrying auth token validation in ${delays[attempt] / 1000}s...`
+      );
+      await asyncTimeout(delays[attempt]);
     }
   }
 }
