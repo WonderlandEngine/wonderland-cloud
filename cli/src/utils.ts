@@ -1,5 +1,5 @@
 const isDebug = process.env.LOG_LEVEL === 'debug';
-import { v4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 export const logMessage = (...messages: any[]) => {
   console.log(new Date().toLocaleString(), ...messages);
@@ -33,10 +33,10 @@ export const fetchWithJSON = async (
   attempt = 0
 ): Promise<Response> => {
   const initialHeaders = options.noContentType
-    ? { requestId: v4() }
+    ? { requestId: randomUUID() }
     : {
         'content-type': 'application/json',
-        requestId: v4(),
+        requestId: randomUUID(),
       };
   try {
     debugMessage('performing fetch', initialHeaders.requestId, url, options);

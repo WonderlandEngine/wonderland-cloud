@@ -3,9 +3,6 @@ import os from 'os';
 import path from 'path';
 import { CloudClient } from '../src/lib';
 
-/* uuid 13 is ESM-only, which ts-jest cannot load */
-jest.mock('uuid', () => ({ v4: () => 'test-request-id' }));
-
 const fetchMock = jest.fn();
 global.fetch = fetchMock;
 
