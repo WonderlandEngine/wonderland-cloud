@@ -1,6 +1,6 @@
 {
   "name": "@wonderlandcloud/cli",
-  "version": "0.2.36",
+  "version": "0.2.37",
   "description": "CLI client and node library for interaction with Wonderland Cloud services.",
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
@@ -8,7 +8,7 @@
     ".": "./dist/src/index.js"
   },
   "bin": {
-    "wl-cloud": "./dist/src/cli_client.js"
+    "wl-cloud": "dist/src/cli_client.js"
   },
   "files": [
     "dist",
